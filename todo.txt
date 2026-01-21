@@ -1,0 +1,19 @@
+//////////
+/// Engine project
+
+
+
+WINDOWS:
+	- Create a window.
+	- Use direct3D 12 for the graphics:
+		- render pixel.
+		- render line.
+		- render a mesh.
+
+
+MACOS: 
+	- same setup for windows but with METAL as the graphics API.
+
+
+
+C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\um\x86
