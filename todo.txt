@@ -4,7 +4,6 @@
 
 
 WINDOWS:
-	- Create a window.
 	- Use direct3D 12 for the graphics:
 		- render pixel.
 		- render line.

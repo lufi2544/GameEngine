@@ -2,20 +2,24 @@
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {	
 	switch (msg)
-    {
-        case WM_DESTROY:		
-		case WM_QUIT:
-		{
-			PostQuitMessage(0);
-			g_engine->is_running = false;
-			return 0;
-		}
-		
+    {		
 		case WM_CLOSE:
 		{		
 			DestroyWindow(g_engine->main_window.handle); // triggers WM_DESTROY
 			return 0;
 		};
+		
+		case WM_PAINT:
+		{
+			
+			PAINTSTRUCT ps;
+			HDC hdc = BeginPaint(hwnd, &ps);
+			
+			// Fils the update region with the COLOR_WINDOW 
+			FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW));
+			EndPaint(hwnd, &ps);
+
+		}break;
 	}
 	
 	return DefWindowProc(hwnd, msg, wparam, lparam);
