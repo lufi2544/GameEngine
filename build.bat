@@ -25,7 +25,7 @@ call %BUILD_DIR%/setup_cl_x64.bat
 
 :: Compile with MSVC
 :: Using Fe: in stead of OUT, since we are using unity build.
-cl /Fe:%BINARY_NAME% %CFLAGS% -I%SRC_DIR% -I%TESTS_DIR% -I%MAYORANA_DIR% -I%MAYORANA_REF%/reflection_includes.h %MAIN_FILE% -D%FLAGS% /link /SUBSYSTEM:CONSOLE /nologo
+cl /Fe:%BINARY_NAME% %CFLAGS% -I%SRC_DIR% -I%TESTS_DIR% -I%MAYORANA_DIR% -I%MAYORANA_REF%/reflection_includes.h %MAIN_FILE% -D%FLAGS% /link user32.lib /SUBSYSTEM:CONSOLE /nologo
 
 :: print the generated code to a file( we can do this more elegantly with the game files, but is fine ).
 ::%BINARY_NAME% > game_generated.h
