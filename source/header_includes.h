@@ -2,6 +2,10 @@
 
 #include "mayorana.h"
 
+#include "globals.h"
 
 /// PLATFORM
+#include "platform.h"
+
 #include "window.h"
+#include "engine.h"

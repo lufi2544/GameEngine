@@ -4,13 +4,25 @@
 #include "includes.h"
 
 
-int main(int arg_num, char** args)
+void InitGlobals()
+{
+	// Init globals
+	g_engine = (engine*)push_size(&g_memory.permanent, sizeof(engine));
+	g_engine->is_running = true;
+}
+
+void InitFramework()
 {
 	mayorana_init();
 	
-	create_window();
+	InitGlobals();
+}
+
+int main(int arg_num, char** args)
+{
+	InitFramework();
+	u32 run_error = EngineRun();
 	
-	
-	return 0;
+	return run_error;
 }
 
