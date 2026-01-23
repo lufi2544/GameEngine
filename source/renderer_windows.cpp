@@ -30,6 +30,7 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	swap_chain_description.BufferDesc.Width = _params.width;
 	swap_chain_description.BufferDesc.Height = _params.height;
 	swap_chain_description.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;	
+	swap_chain_description.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
 	swap_chain_description.OutputWindow = _params.window_handle;
 	swap_chain_description.SampleDesc.Count = 1;
 	swap_chain_description.Windowed = 1;

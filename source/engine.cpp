@@ -26,7 +26,7 @@ EngineUpdate()
 global_f void 
 EngineRender()
 {
-	
+	RendererUpdate();
 }
 
 
