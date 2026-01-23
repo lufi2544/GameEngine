@@ -2,6 +2,22 @@
 
 
 #include "d3d11.h"
+#include "d3dcompiler.h"
+
+
+struct vertex
+{
+	f32 x, y, z;
+	f32 r, g, b, a;
+};
+
+
+global vertex triangle_verteces[] = 
+{
+	{  0.0f,  0.5f,  0.0f,    1,  0,  0,  1 }, // top (red)
+    {  0.5f, -0.5f,  0.0f,    0,  1,  0,  1 }, // right (green)
+    { -0.5f, -0.5f,  0.0f,    0,  0,  1,  1 }, // left (blue)
+};
 
 struct renderer
 {
@@ -9,6 +25,11 @@ struct renderer
 	ID3D11DeviceContext *context;
 	IDXGISwapChain *swap_chain;
 	ID3D11RenderTargetView *target_view;
+	ID3D11Buffer *triangle_vertex_buffer;
+	ID3D11InputLayout* input_layout;
+	
+	ID3D11VertexShader* vertex_shader;
+	ID3D11PixelShader* pixel_shader;
 };
 
 global renderer g_renderer;
@@ -79,6 +100,43 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	vp.MaxDepth = 1.0f;
 	
 	_renderer->context->RSSetViewports(1, &vp);	
+	
+	D3D11_BUFFER_DESC vertex_buffer_description = {};
+	vertex_buffer_description.Usage = D3D11_USAGE_DEFAULT;
+	vertex_buffer_description.ByteWidth = sizeof(triangle_verteces);
+	vertex_buffer_description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	
+	D3D11_SUBRESOURCE_DATA vertex_buffer_data = { };
+	vertex_buffer_data.pSysMem = triangle_verteces;
+	
+	HRESULT hr_vertex_buffer = g_renderer.device->CreateBuffer(&vertex_buffer_description, &vertex_buffer_data, &g_renderer.triangle_vertex_buffer);
+	
+	
+	ID3DBlob *vs_blob = 0;
+	ID3DBlob *ps_blob = 0;
+	
+	D3DCompileFromFile(L"triangle_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, 0);
+	D3DCompileFromFile(L"triangle_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, 0);
+
+	
+	g_renderer.device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &g_renderer.vertex_shader);	
+	g_renderer.device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &g_renderer.pixel_shader);
+	
+	D3D11_INPUT_ELEMENT_DESC layout[] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+		
+	g_renderer.device->CreateInputLayout(
+										 layout, 
+										 2, 
+										 vs_blob->GetBufferPointer(),
+										 vs_blob->GetBufferSize(),
+										 &g_renderer.input_layout
+										 );
+	
+	
 	return true;	
 }
 
@@ -99,6 +157,17 @@ BeginFrame(renderer *_rederer)
 {
 	float clear_color[4] = { 0.1f, 0.2f, 0.4f, 1.0f };
 	_rederer->context->ClearRenderTargetView(_rederer->target_view, clear_color);
+	
+	UINT stride = sizeof(vertex);
+	UINT offset = 0;
+	
+	g_renderer.context->IASetVertexBuffers(0, 1, &g_renderer.triangle_vertex_buffer, &stride, &offset);
+	g_renderer.context->IASetInputLayout(g_renderer.input_layout);
+	g_renderer.context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	g_renderer.context->VSSetShader(g_renderer.vertex_shader, 0, 0);
+	g_renderer.context->PSSetShader(g_renderer.pixel_shader, 0, 0);
+	
+	g_renderer.context->Draw(3, 0);
 }
 
 
