@@ -5,7 +5,9 @@
 #include "globals.h"
 
 /// PLATFORM
-#include "platform.h"
 
 #include "window.h"
 #include "engine.h"
+
+#include "renderer.h"
+#include "platform.h"

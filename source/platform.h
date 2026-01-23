@@ -1,12 +1,8 @@
 /* date = January 22nd 2026 7:52 pm */
 
-
-#ifdef _WINDOWS
-#include "platform_windows.h"
-#endif // _WINDOWS
+//////// Platform related functions. This will get expaned in the platform.cpp
 
 
-#ifdef _MACOS
-
-#endif // _MACOS
+global_f void
+PlatformUpdate();
 

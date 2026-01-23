@@ -3,6 +3,8 @@
 
 #include "window.cpp"
 #include "engine.cpp"
+#include "renderer.cpp"
+#include "platform.cpp"
 
 
 

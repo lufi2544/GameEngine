@@ -9,23 +9,5 @@ struct engine
 	window main_window;
 	bool is_running;
 };
-
-
-void 
-EngineInit();
-
-u32 
-EngineRun();
-
-void
-EngineUpdate();
-
-void 
-EngineRender();
-
-void 
-EngineShutDown();
-
-
 ///////////////////////////
 

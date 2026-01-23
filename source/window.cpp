@@ -5,9 +5,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
     {		
 		case WM_CLOSE:
 		{		
-			DestroyWindow(g_engine->main_window.handle); // triggers WM_DESTROY
+			DestroyWindow(hwnd); // triggers WM_DESTROY
 			return 0;
 		};
+		
+		case WM_DESTROY:
+		{
+			PostQuitMessage(0);
+			
+		}break;
 		
 		case WM_PAINT:
 		{
@@ -18,7 +24,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 			// Fils the update region with the COLOR_WINDOW 
 			FillRect(hdc, &ps.rcPaint, (HBRUSH)(COLOR_WINDOW));
 			EndPaint(hwnd, &ps);
-
+			
+			
+			/*
+    PAINTSTRUCT ps;
+    BeginPaint(hwnd, &ps);
+    EndPaint(hwnd, &ps);
+    return 0;
+*/
+			
 		}break;
 	}
 	

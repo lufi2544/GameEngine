@@ -16,4 +16,5 @@ struct window
 };
 
 
-window CreateAWindow(u32 x, u32 y, u32 h, u32 w);
+global_f window 
+CreateAWindow(u32 x, u32 y, u32 h, u32 w);
