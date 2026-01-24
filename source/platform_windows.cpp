@@ -15,8 +15,7 @@ until we have no more messages in the message queue.
 	{						
 		// related to keyboard intput.
 		TranslateMessage(&msg);		
-		
-		
+				
 		switch(msg.message)
 		{				
 			case WM_QUIT:
