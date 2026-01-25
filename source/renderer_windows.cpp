@@ -161,10 +161,7 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	
 	_renderer->device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &_renderer->vertex_shader);	
 	_renderer->device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &_renderer->pixel_shader);
-	
-	vs_blob->Release();
-	ps_blob->Release();
-	
+		
 	// we use a input description to create an input layout
 	// TODO: cache every input layout description and cache it???
 	D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -180,6 +177,9 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 										 vs_blob->GetBufferSize(),
 										 &_renderer->input_layout
 										 );
+	
+	vs_blob->Release();
+	ps_blob->Release();
 	
 	
 	return true;	
@@ -227,13 +227,27 @@ BeginFrame(renderer *_renderer)
 	_renderer->context->PSSetShader(_renderer->pixel_shader, 0, 0);
 	
 	
+	float world[16];
+	float view[16];
+	float proj[16];
+	float vp[16];
 	float mvp[16];
 	
-	bytes_set(mvp, 0, sizeof(mvp));
-	mvp[0] = 1;
-	mvp[5] = 1;
-	mvp[10] = 1;
-	mvp[15] = 1;
+	Mat4Identity(world);
+	
+	vec3 eye = { 0, 0, -10 };
+	vec3 at  = { 0, 0,  0 };
+	vec3 up  = { 0, 1,  0 };
+	
+	Mat4LookAtLH(view, eye, at, up);
+	
+	float aspect = 800.0f / 600.0f;
+	Mat4PerspectiveLH(proj, 60.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+	
+	// MVP = proj * view * world
+	Mat4Mul(vp, proj, view);
+	Mat4Mul(mvp, vp, world);
+	
 	
 	D3D11_MAPPED_SUBRESOURCE mapped = {};
 	_renderer->context->Map(_renderer->cb_mvp, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
