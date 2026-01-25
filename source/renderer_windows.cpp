@@ -85,6 +85,11 @@ struct renderer
 	ID3D11Buffer *cb_mvp;
 	ID3D11Buffer *cube_index_buffer;
 	u32 cube_index_count;
+	
+	
+	ID3D11RasterizerState *rs_wireframe;
+	ID3D11RasterizerState *rs_solid;	
+	
 };
 
 struct constant_buffer_mvp
@@ -141,6 +146,30 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	{
 		return false;
 	}
+	
+	// Rasterizer state for debugging faces.
+	// Solid(normal)
+	{
+		D3D11_RASTERIZER_DESC rs = {};
+		rs.FillMode = D3D11_FILL_SOLID;
+		rs.CullMode = D3D11_CULL_BACK;
+		rs.DepthClipEnable = TRUE;
+		
+		_renderer->device->CreateRasterizerState(&rs, &_renderer->rs_solid);
+	}
+	
+	// Wireframe (debug)
+	{
+		
+		D3D11_RASTERIZER_DESC rs = {};
+		rs.FillMode = D3D11_FILL_WIREFRAME;
+		rs.CullMode = D3D11_CULL_NONE;
+		rs.DepthClipEnable = TRUE;
+		
+		_renderer->device->CreateRasterizerState(&rs, &_renderer->rs_wireframe);
+		
+	}
+	
 	
 	// Target view
 	
@@ -343,6 +372,9 @@ BeginFrame(renderer *_renderer)
 	
 	_renderer->context->VSSetConstantBuffers(0, 1, &_renderer->cb_mvp);
 	
+	
+	// Debug:wireframe mode
+	_renderer->context->RSSetState(_renderer->rs_wireframe);
 	_renderer->context->DrawIndexed(_renderer->cube_index_count, 0, 0);
 }
 
