@@ -1,8 +1,18 @@
 /* date = January 25th 2026 11:53 am */
 
+#define PI 3.14159f
+
 struct vec3
 {	
 	f32 x, y, z;
+};
+
+struct transform
+{
+	vec3 position;
+	vec3 rotation;
+	vec3 scale;
+	
 };
 
 internal_f vec3
@@ -63,6 +73,7 @@ Mat4LookAtLH(float* m, vec3 eye, vec3 at, vec3 up)
     m[15] = 1;
 }
 
+
 internal_f void
 Mat4Identity(f32 *m)
 {
@@ -106,4 +117,46 @@ Mat4PerspectiveLH(float* m, float fovY, float aspect, float zn, float zf)
     m[10] = zf / (zf - zn);
     m[11] = 1.0f;
     m[14] = -zn * zf / (zf - zn);
+}
+
+
+internal_f void
+TransformToMatrix(float* out, transform t)
+{
+    float T[16];
+    float S[16];
+    float R[16]; // later
+	
+    Mat4Identity(T);
+    Mat4Identity(S);
+	
+    // Translation (column-major)
+    T[12] = t.position.x;
+    T[13] = t.position.y;
+    T[14] = t.position.z;
+	
+    // Scale
+    S[0]  = t.scale.x;
+    S[5]  = t.scale.y;
+    S[10] = t.scale.z;
+	
+    // For now, skip rotation
+    float TS[16];
+    Mat4Mul(TS, T, S);
+	
+    bytes_copy(out, TS, sizeof(float)*16);
+}
+
+internal_f void
+Mat4RotationY(float* m, float angle)
+{
+    Mat4Identity(m);
+	
+    float c = cosf(angle);
+    float s = sinf(angle);
+	
+    m[0]  =  c;
+    m[2]  =  s;
+    m[8]  = -s;
+    m[10] =  c;
 }

@@ -5,6 +5,20 @@
 #include "d3dcompiler.h"
 
 
+// TODO: move this to another .h
+struct camera
+{
+	vec3 position;
+	vec3 target;
+	vec3 up;
+	
+	f32 fov; // radians
+	f32 near_z;
+	f32 far_z;	
+};
+
+global camera g_engine_camera;
+
 struct vertex
 {
 	f32 x, y, z;
@@ -20,13 +34,45 @@ global vertex triangle_verteces[] =
 };
 
 
+global u32 cube_indices[] =
+{
+    // Front
+    0,1,2,  0,2,3,
+    // Back
+    4,6,5,  4,7,6,
+    // Left
+    4,5,1,  4,1,0,
+    // Right
+    3,2,6,  3,6,7,
+    // Top
+    4,0,3,  4,3,7,
+    // Bottom
+    1,5,6,  1,6,2,
+};
+
+
+global vertex cube_vertices[] =
+{
+    // Front face
+    { -1,  1, -1,  1,0,0,1 }, // 0
+    {  1,  1, -1,  0,1,0,1 }, // 1
+    {  1, -1, -1,  0,0,1,1 }, // 2
+    { -1, -1, -1,  1,1,0,1 }, // 3
+	
+    // Back face
+    { -1,  1,  1,  1,0,1,1 }, // 4
+    {  1,  1,  1,  0,1,1,1 }, // 5
+    {  1, -1,  1,  1,1,1,1 }, // 6
+    { -1, -1,  1,  0,0,0,1 }, // 7
+};
+
 struct renderer
 {
 	ID3D11Device* device;
 	ID3D11DeviceContext *context;
 	IDXGISwapChain *swap_chain;
 	ID3D11RenderTargetView *target_view;
-	ID3D11Buffer *triangle_vertex_buffer;
+	ID3D11Buffer *cube_vertex_buffer;
 	ID3D11InputLayout* input_layout;
 	
 	ID3D11VertexShader* vertex_shader;
@@ -37,6 +83,8 @@ struct renderer
 	
 	// mvp -> model/view/projection
 	ID3D11Buffer *cb_mvp;
+	ID3D11Buffer *cube_index_buffer;
+	u32 cube_index_count;
 };
 
 struct constant_buffer_mvp
@@ -133,15 +181,29 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	
 	_renderer->context->RSSetViewports(1, &vp);	
 	
+	// Allocate GPU buffer for the vertex buffer
 	D3D11_BUFFER_DESC vertex_buffer_description = {};
 	vertex_buffer_description.Usage = D3D11_USAGE_DEFAULT;
-	vertex_buffer_description.ByteWidth = sizeof(triangle_verteces);
+	vertex_buffer_description.ByteWidth = sizeof(cube_vertices);
 	vertex_buffer_description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	
 	D3D11_SUBRESOURCE_DATA vertex_buffer_data = { };
-	vertex_buffer_data.pSysMem = triangle_verteces;
+	vertex_buffer_data.pSysMem = cube_vertices;
 	
-	HRESULT hr_vertex_buffer = _renderer->device->CreateBuffer(&vertex_buffer_description, &vertex_buffer_data, &_renderer->triangle_vertex_buffer);
+	HRESULT hr_vertex_buffer = _renderer->device->CreateBuffer(&vertex_buffer_description, &vertex_buffer_data, &_renderer->cube_vertex_buffer);
+	
+	
+	// Allocate GPU buffer for the index buffer
+	D3D11_BUFFER_DESC index_desc = {};
+	index_desc.Usage = D3D11_USAGE_DEFAULT;
+	index_desc.ByteWidth = sizeof(cube_indices);
+	index_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	
+	D3D11_SUBRESOURCE_DATA index_data = {};
+	index_data.pSysMem = cube_indices;
+	
+	_renderer->device->CreateBuffer(&index_desc, &index_data, &_renderer->cube_index_buffer);
+	_renderer->cube_index_count = ArrayCount(cube_indices);
 	
 	// Model-View-Projection
 	D3D11_BUFFER_DESC constant_buffer_desc = {};
@@ -150,7 +212,7 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	constant_buffer_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	constant_buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	
-	_renderer->device->CreateBuffer(&constant_buffer_desc, 0, &_renderer->cb_mvp);
+	_renderer->device->CreateBuffer(&constant_buffer_desc, 0, &_renderer->cb_mvp);	
 	
 	ID3DBlob *vs_blob = 0;
 	ID3DBlob *ps_blob = 0;
@@ -182,6 +244,11 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	ps_blob->Release();
 	
 	
+	
+	// CUBE STUFF
+	_renderer->cube_index_count = ArrayCount(cube_indices);
+		
+	
 	return true;	
 }
 
@@ -200,6 +267,7 @@ RendererInit()
 internal_f void
 BeginFrame(renderer *_renderer)
 {
+	
 	float clear_color[4] = { 0.1f, 0.2f, 0.4f, 1.0f };
 	_renderer->context->ClearRenderTargetView(_renderer->target_view, clear_color);
 	
@@ -214,7 +282,8 @@ BeginFrame(renderer *_renderer)
 	UINT offset = 0;
 	
 	// Input assembly
-	_renderer->context->IASetVertexBuffers(0, 1, &_renderer->triangle_vertex_buffer, &stride, &offset);
+	_renderer->context->IASetVertexBuffers(0, 1, &_renderer->cube_vertex_buffer, &stride, &offset);
+	_renderer->context->IASetIndexBuffer(_renderer->cube_index_buffer, DXGI_FORMAT_R32_UINT, 0);
 	_renderer->context->IASetInputLayout(_renderer->input_layout);
 	
 	// Treat the input as triagles
@@ -234,15 +303,30 @@ BeginFrame(renderer *_renderer)
 	float mvp[16];
 	
 	Mat4Identity(world);
+	transform local_transform;
+	local_transform.position = {0,0, 0};
+	local_transform.scale = {1, 1, 1};
 	
-	vec3 eye = { 0, 0, -10 };
-	vec3 at  = { 0, 0,  0 };
-	vec3 up  = { 0, 1,  0 };
 	
-	Mat4LookAtLH(view, eye, at, up);
+	static float angle = 0.0f;
+	angle += 0.01f; // later use dt
+	
+	float rot[16];
+	Mat4RotationY(rot, angle);
+	
+	TransformToMatrix(world, local_transform);
+	
+	// world = rot * world
+	float world_rotated[16];
+	Mat4Mul(world_rotated, rot, world);
+	bytes_copy(world, world_rotated, sizeof(world));
+
+
+	
+	Mat4LookAtLH(view, g_engine_camera.position, g_engine_camera.target, g_engine_camera.up);
 	
 	float aspect = 800.0f / 600.0f;
-	Mat4PerspectiveLH(proj, 60.0f * 3.14159f / 180.0f, aspect, 0.1f, 100.0f);
+	Mat4PerspectiveLH(proj, g_engine_camera.fov, aspect, g_engine_camera.near_z, g_engine_camera.far_z);
 	
 	// MVP = proj * view * world
 	Mat4Mul(vp, proj, view);
@@ -259,7 +343,7 @@ BeginFrame(renderer *_renderer)
 	
 	_renderer->context->VSSetConstantBuffers(0, 1, &_renderer->cb_mvp);
 	
-	_renderer->context->Draw(3, 0);
+	_renderer->context->DrawIndexed(_renderer->cube_index_count, 0, 0);
 }
 
 
