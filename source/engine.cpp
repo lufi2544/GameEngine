@@ -1,8 +1,10 @@
 
+
 global_f void 
 EngineInit()
 {	
-	g_engine->main_window = CreateAWindow(200, 200, 800, 600);
+	g_engine->main_window = CreateAWindow(200, 200, 800, 600);	
+	g_engine->shared_data.memory = &g_memory;
 	
 	if(RendererInit())
 	{
@@ -21,6 +23,12 @@ EngineInit()
 	
 	g_engine_camera.near_z = 0.1f;
 	g_engine_camera.far_z = 100.0f;
+	
+	
+	mesh plane = CreateMeshFromFile("data/f22.obj", &g_engine->shared_data);	
+	printf("Mesh with : %i verteces. \n", plane.vertex_num);
+	
+	
 }
 
 

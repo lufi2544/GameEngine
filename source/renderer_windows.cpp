@@ -92,6 +92,7 @@ struct renderer
 	
 };
 
+
 struct constant_buffer_mvp
 {
 	float mvp[16];
