@@ -9,6 +9,7 @@
 #include "window.h"
 #include "math_lib.h"
 
+#include "application.h"
 #include "engine.h"
 
 #include "renderer.h"

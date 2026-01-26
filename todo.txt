@@ -1,6 +1,12 @@
 //////////
 /// Engine project
 
+- Change the data structurs to _t
+- Link the meshes and the engine vertex format to the renderer.
+- Create a list of max meshes that can be represented at once in memory.
+
+RENDERER:
+	- Organize the CPU - GPU render meshes, so we can access the data when needed or delete it.
 
 
 WINDOWS:
@@ -12,6 +18,10 @@ WINDOWS:
 
 MACOS: 
 	- same setup for windows but with METAL as the graphics API.
+
+
+POST IMPLEMENTATION:
+- REFACTOR - Separate the engine and the application.
 
 
 

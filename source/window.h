@@ -5,7 +5,7 @@
 // Create a window and display it.
 
 
-struct window
+struct window_t
 {
 	HWND handle;
 	
@@ -16,5 +16,5 @@ struct window
 };
 
 
-global_f window 
+global_f window_t
 CreateAWindow(u32 x, u32 y, u32 h, u32 w);

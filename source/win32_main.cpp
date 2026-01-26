@@ -7,7 +7,7 @@
 void InitGlobals()
 {
 	// Init globals
-	g_engine = (engine*)push_size(&g_memory.permanent, sizeof(engine));
+	g_engine = (engine_t*)push_size(&g_memory.permanent, sizeof(engine_t));
 	g_engine->is_running = true;
 }
 

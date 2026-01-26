@@ -379,10 +379,10 @@ ConvertTof64(buffer_t _source)
 	return result;
 }
 
-internal_f vec3
+internal_f vec3_t
 ConvertToVertex(importer_element_t *first_vertex_component, buffer_t buffer)
 {
-	vec3 result;
+	vec3_t result;
 	result.x = 0;
 	result.y = 0;
 	result.z = 0;
@@ -429,12 +429,12 @@ ConvertToTextureCoordinate(buffer_t buffer, importer_element_t *element, f32 *u,
 	*v = ConvertTof64(v_buff);	
 }
 
-internal_f face
-ConvertToFace(mesh *_mesh, importer_element_t *first_face_element, buffer_t source)
+internal_f face_t
+ConvertToFace(mesh_t *_mesh, importer_element_t *first_face_element, buffer_t source)
 {
 	// each face element has 3 components a, b and c, which the a is the only element that we care about for now
 	// v1/vt1/vn1
-	face result;
+	face_t result;
 	
 	// TODO:(optimization) use the same buffer here, in this case we can use a single node for all the face and do the parsing here, better.
 	// Let's make this an array moduled
@@ -447,7 +447,7 @@ ConvertToFace(mesh *_mesh, importer_element_t *first_face_element, buffer_t sour
 	
 	at++;
 	u32 uv_index = (u32)ConvertToNumber(a_buffer, &at) - 1;
-	texture_uv temp_uv = _mesh->uv_coords[uv_index];
+	texture_uv_t temp_uv = _mesh->uv_coords[uv_index];
 	result.a_uv = temp_uv;
 	
 	
@@ -487,10 +487,10 @@ ConvertToFace(mesh *_mesh, importer_element_t *first_face_element, buffer_t sour
 
 // I would like to change this to struct of arrays, so we can have id DOD and better for cache locality
 // in this case, maybe allocting everything in the temp memory and then passing it to the permanent memory?..
-global_f mesh
-CreateMeshFromFile(const char *_file_name, engine_shared_data *engine_data)
+global_f mesh_t*
+CreateMeshFromFile(const char *_file_name, engine_shared_data_t *engine_data)
 {
-	mesh result;
+	mesh_t result;
 	result.texture = 0;
 	result.face_num = 0;
 	result.vertex_num = 0;
@@ -504,7 +504,7 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data *engine_data)
 	
 	if (_file_name == 0)
 	{
-		return result;
+		return 0;
 	}
 	
 	S_SCRATCH(engine_data->memory);
@@ -553,9 +553,9 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data *engine_data)
 		printf("iterated face: %i \n", result.face_num);		
 		printf("iterated uv_corods: %i \n", result.uv_coords_num);		
 		
-		result.verteces = push_array(&engine_data->memory->permanent, result.vertex_num, vec3);
-		result.faces = push_array(&engine_data->memory->permanent, result.face_num, face);
-		result.uv_coords = push_array(&engine_data->memory->permanent, result.uv_coords_num, texture_uv);
+		result.verteces = push_array(&engine_data->memory->permanent, result.vertex_num, vec3_t);
+		result.faces = push_array(&engine_data->memory->permanent, result.face_num, face_t);
+		result.uv_coords = push_array(&engine_data->memory->permanent, result.uv_coords_num, texture_uv_t);
 		
 		//(juanes.rayo) NOTE: can we figure this out runtime? or is better to store it too? as we have already the verteces and the faces, we could figure this out runtime.
 		//result.triangles = PushArray(&engine_memory->permanent, count_face, triangle_t);
@@ -573,13 +573,13 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data *engine_data)
 		{			
 			if(it->type == token_face_comp)
 			{
-				face face = ConvertToFace(&result, it, importer.source);
+				face_t face = ConvertToFace(&result, it, importer.source);
 				result.faces[current_face++] = face;
 				it = it->next_sibling->next_sibling->next_sibling;
 			}
 			else if(it->type == token_vertex_comp)
 			{								
-				vec3 vertex = ConvertToVertex(it, importer.source);				
+				vec3_t vertex = ConvertToVertex(it, importer.source);				
 				
 				result.verteces[current_vertex] = vertex;
 				current_vertex++;
@@ -592,7 +592,7 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data *engine_data)
 				f32 v = 0;
 				ConvertToTextureCoordinate(importer.source, it, &u, &v);
 				
-				texture_uv uv;
+				texture_uv_t uv;
 				uv.u = u;
 				uv.v = v;				
 				result.uv_coords[current_uv++] = uv;
@@ -609,19 +609,21 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data *engine_data)
 		assert(current_vertex == result.vertex_num);	
 		assert(current_uv == result.uv_coords_num);
 	}
+					
+	engine_data->meshes[engine_data->mesh_num] = result;
+	mesh_t *imported = &engine_data->meshes[engine_data->mesh_num++];
+	
+	// Renderer "callback"
+	RendererComputeImportedMesh(imported);
 	
 	
-	
-	SCRATCH_END();
-	
-	
-	//engine_data->meshes_num++;
-	return result;
+	printf("Mesh with : %i verteces. \n", imported->vertex_num);		
+	return imported;
 }
 
 
 global_f bool
-MeshAddTexture(engine_shared_data *shared_data, mesh *_mesh, string_t _texture_name)
+MeshAddTexture(engine_shared_data_t *shared_data, mesh_t *_mesh, string_t _texture_name)
 {
 	// TODO add the texture manager
 	/*

@@ -2,33 +2,33 @@
 
 #define PI 3.14159f
 
-struct vec3
+struct  vec3_t
 {	
 	f32 x, y, z;
 };
 
-struct transform
+struct transform_t
 {
-	vec3 position;
-	vec3 rotation;
-	vec3 scale;
+	vec3_t position;
+	vec3_t rotation;
+	vec3_t scale;
 	
 };
 
-internal_f vec3
-Vec3Sub(vec3 a, vec3 b)
+internal_f vec3_t
+Vec3Sub(vec3_t a, vec3_t b)
 {
     return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
 internal_f float
-Vec3Dot(vec3 a, vec3 b)
+Vec3Dot(vec3_t a, vec3_t b)
 {
     return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
-internal_f vec3
-Vec3Cross(vec3 a, vec3 b)
+internal_f vec3_t
+Vec3Cross(vec3_t a, vec3_t b)
 {
     return {
         a.y*b.z - a.z*b.y,
@@ -37,8 +37,8 @@ Vec3Cross(vec3 a, vec3 b)
     };
 }
 
-internal_f vec3
-Vec3Normalize(vec3 v)
+internal_f vec3_t
+Vec3Normalize(vec3_t v)
 {
     float len = sqrtf(v.x*v.x + v.y*v.y + v.z*v.z);
     return { v.x/len, v.y/len, v.z/len };
@@ -46,11 +46,11 @@ Vec3Normalize(vec3 v)
 
 
 internal_f void
-Mat4LookAtLH(float* m, vec3 eye, vec3 at, vec3 up)
+Mat4LookAtLH(float* m, vec3_t eye, vec3_t at, vec3_t up)
 {
-    vec3 zaxis = Vec3Normalize(Vec3Sub(at, eye));   // forward
-    vec3 xaxis = Vec3Normalize(Vec3Cross(up, zaxis));
-    vec3 yaxis = Vec3Cross(zaxis, xaxis);
+    vec3_t zaxis = Vec3Normalize(Vec3Sub(at, eye));   // forward
+    vec3_t xaxis = Vec3Normalize(Vec3Cross(up, zaxis));
+    vec3_t yaxis = Vec3Cross(zaxis, xaxis);
 	
     m[0]  = xaxis.x;
     m[1]  = xaxis.y;
@@ -121,7 +121,7 @@ Mat4PerspectiveLH(float* m, float fovY, float aspect, float zn, float zf)
 
 
 internal_f void
-TransformToMatrix(float* out, transform t)
+TransformToMatrix(float* out, transform_t t)
 {
     float T[16];
     float S[16];

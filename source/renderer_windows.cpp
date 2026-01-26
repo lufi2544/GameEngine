@@ -6,27 +6,45 @@
 
 
 // TODO: move this to another .h
-struct camera
+struct camera_t
 {
-	vec3 position;
-	vec3 target;
-	vec3 up;
+	vec3_t position;
+	vec3_t target;
+	vec3_t up;
 	
 	f32 fov; // radians
 	f32 near_z;
 	f32 far_z;	
 };
 
-global camera g_engine_camera;
+global camera_t g_engine_camera;
 
-struct vertex
+struct vertex_t
+{
+	f32 x, y, z;
+	f32 r, g, b, a;
+};
+
+struct gpu_mesh_t
+{
+	ID3D11Buffer* vertex_buffer;
+	ID3D11Buffer* index_buffer;
+	
+	u32 index_count;	
+};
+
+global gpu_mesh_t g_test_gpu_mesh;
+
+struct gpu_vertex_t
 {
 	f32 x, y, z;
 	f32 r, g, b, a;
 };
 
 
-global vertex triangle_verteces[] = 
+
+
+global vertex_t triangle_verteces[] = 
 {
     { -1.0f,  1.0f, 0.0f,  1, 0, 0, 1 },
     {  1.0f, -1.0f, 0.0f,  0, 1, 0, 1 },
@@ -51,7 +69,7 @@ global u32 cube_indices[] =
 };
 
 
-global vertex cube_vertices[] =
+global vertex_t cube_vertices[] =
 {
     // Front face
     { -1,  1, -1,  1,0,0,1 }, // 0
@@ -66,13 +84,12 @@ global vertex cube_vertices[] =
     { -1, -1,  1,  0,0,0,1 }, // 7
 };
 
-struct renderer
+struct renderer_t
 {
 	ID3D11Device* device;
 	ID3D11DeviceContext *context;
 	IDXGISwapChain *swap_chain;
 	ID3D11RenderTargetView *target_view;
-	ID3D11Buffer *cube_vertex_buffer;
 	ID3D11InputLayout* input_layout;
 	
 	ID3D11VertexShader* vertex_shader;
@@ -82,16 +99,15 @@ struct renderer
 	ID3D11DepthStencilView *depth_view;
 	
 	// mvp -> model/view/projection
-	ID3D11Buffer *cb_mvp;
-	ID3D11Buffer *cube_index_buffer;
-	u32 cube_index_count;
-	
+	ID3D11Buffer *cb_mvp;	
 	
 	ID3D11RasterizerState *rs_wireframe;
 	ID3D11RasterizerState *rs_solid;	
 	
 };
 
+// TODO move this elsewhere
+global u32 g_mesh_num;
 
 struct constant_buffer_mvp
 {
@@ -99,7 +115,7 @@ struct constant_buffer_mvp
 };
 
 
-global renderer g_renderer;
+global renderer_t g_renderer;
 
 struct renderer_init_params
 {
@@ -111,7 +127,7 @@ struct renderer_init_params
 
 
 internal_f
-bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
+bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 {
 	DXGI_SWAP_CHAIN_DESC swap_chain_description = {};
 	swap_chain_description.BufferCount = 1;
@@ -209,31 +225,7 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	vp.MinDepth = 0.0f;
 	vp.MaxDepth = 1.0f;
 	
-	_renderer->context->RSSetViewports(1, &vp);	
-	
-	// Allocate GPU buffer for the vertex buffer
-	D3D11_BUFFER_DESC vertex_buffer_description = {};
-	vertex_buffer_description.Usage = D3D11_USAGE_DEFAULT;
-	vertex_buffer_description.ByteWidth = sizeof(cube_vertices);
-	vertex_buffer_description.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	
-	D3D11_SUBRESOURCE_DATA vertex_buffer_data = { };
-	vertex_buffer_data.pSysMem = cube_vertices;
-	
-	HRESULT hr_vertex_buffer = _renderer->device->CreateBuffer(&vertex_buffer_description, &vertex_buffer_data, &_renderer->cube_vertex_buffer);
-	
-	
-	// Allocate GPU buffer for the index buffer
-	D3D11_BUFFER_DESC index_desc = {};
-	index_desc.Usage = D3D11_USAGE_DEFAULT;
-	index_desc.ByteWidth = sizeof(cube_indices);
-	index_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-	
-	D3D11_SUBRESOURCE_DATA index_data = {};
-	index_data.pSysMem = cube_indices;
-	
-	_renderer->device->CreateBuffer(&index_desc, &index_data, &_renderer->cube_index_buffer);
-	_renderer->cube_index_count = ArrayCount(cube_indices);
+	_renderer->context->RSSetViewports(1, &vp);
 	
 	// Model-View-Projection
 	D3D11_BUFFER_DESC constant_buffer_desc = {};
@@ -272,13 +264,7 @@ bool RenderInitWindows(renderer *_renderer, renderer_init_params _params)
 	
 	vs_blob->Release();
 	ps_blob->Release();
-	
-	
-	
-	// CUBE STUFF
-	_renderer->cube_index_count = ArrayCount(cube_indices);
-		
-	
+			
 	return true;	
 }
 
@@ -294,10 +280,84 @@ RendererInit()
 }
 
 
-internal_f void
-BeginFrame(renderer *_renderer)
+internal_f gpu_mesh_t
+RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset)
 {
+	SCRATCH();
 	
+	gpu_mesh_t result = {};
+	
+	// Build the Vertex Buffer
+	
+	gpu_vertex_t* temp_verteces = (gpu_vertex_t*)push_array(temp_arena, asset->vertex_num, gpu_vertex_t);
+	
+	
+	for(u32 i = 0; i < asset->vertex_num; ++i)
+	{
+		temp_verteces[i].x = asset->verteces[i].x;
+		temp_verteces[i].y = asset->verteces[i].y;
+		temp_verteces[i].z = asset->verteces[i].z;
+		
+		temp_verteces[i].r = 1;
+		temp_verteces[i].g = 1;
+		temp_verteces[i].b = 1;
+		temp_verteces[i].a = 1;		
+	}
+	
+	D3D11_BUFFER_DESC vb_desc = {};
+	vb_desc.Usage = D3D11_USAGE_DEFAULT;
+	vb_desc.ByteWidth = asset->vertex_num * sizeof(gpu_vertex_t);
+	vb_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	
+	D3D11_SUBRESOURCE_DATA vb_data = {};
+	vb_data.pSysMem = temp_verteces;
+	
+	r->device->CreateBuffer(&vb_desc, &vb_data, &result.vertex_buffer);
+	
+	
+	// Build index buffer from faces
+	
+	u32 index_count = asset->face_num * 3;
+	u32 *temp_indeces = (u32*)push_array(temp_arena, index_count, u32);
+	
+	
+	for(u32 i = 0; i < asset->face_num; ++i)
+	{
+		face_t *f = &asset->faces[i];
+		
+		temp_indeces[i * 3 + 0] = f->a;
+		temp_indeces[i * 3 + 1] = f->b;
+		temp_indeces[i * 3 + 2] = f->c;
+	}
+	
+	D3D11_BUFFER_DESC ib_desc = {};
+	ib_desc.Usage = D3D11_USAGE_DEFAULT;
+	ib_desc.ByteWidth = index_count * sizeof(u32);
+	ib_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	
+	
+	D3D11_SUBRESOURCE_DATA ib_data = {};
+	ib_data.pSysMem = temp_indeces;
+	
+	r->device->CreateBuffer(&ib_desc, &ib_data, &result.index_buffer);
+	
+	result.index_count = index_count;
+	
+	
+	g_mesh_num++;
+	
+	return result;	
+}
+
+global_f void
+RendererComputeImportedMesh(mesh_t *_mesh)
+{
+	g_test_gpu_mesh = RendererCreateMeshFromasset(&g_renderer, _mesh);	
+}
+
+internal_f void
+BeginFrame(renderer_t *_renderer)
+{	
 	float clear_color[4] = { 0.1f, 0.2f, 0.4f, 1.0f };
 	_renderer->context->ClearRenderTargetView(_renderer->target_view, clear_color);
 	
@@ -308,16 +368,16 @@ BeginFrame(renderer *_renderer)
 											  0
 											  );
 	
-	UINT stride = sizeof(vertex);
+	UINT stride = sizeof(gpu_vertex_t);
 	UINT offset = 0;
 	
-	// Input assembly
-	_renderer->context->IASetVertexBuffers(0, 1, &_renderer->cube_vertex_buffer, &stride, &offset);
-	_renderer->context->IASetIndexBuffer(_renderer->cube_index_buffer, DXGI_FORMAT_R32_UINT, 0);
-	_renderer->context->IASetInputLayout(_renderer->input_layout);
-	
-	// Treat the input as triagles
-	_renderer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	////// Input Assembly ////
+
+	_renderer->context->IASetVertexBuffers(0, 1, &g_test_gpu_mesh.vertex_buffer, &stride, &offset);	
+	_renderer->context->IASetIndexBuffer(g_test_gpu_mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);	
+	_renderer->context->IASetInputLayout(_renderer->input_layout);	
+	_renderer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Treat the input as triagles	
+
 	
 	// Vertex shader
 	_renderer->context->VSSetShader(_renderer->vertex_shader, 0, 0);
@@ -333,7 +393,7 @@ BeginFrame(renderer *_renderer)
 	float mvp[16];
 	
 	Mat4Identity(world);
-	transform local_transform;
+	transform_t local_transform;
 	local_transform.position = {0,0, 0};
 	local_transform.scale = {1, 1, 1};
 	
@@ -350,8 +410,6 @@ BeginFrame(renderer *_renderer)
 	float world_rotated[16];
 	Mat4Mul(world_rotated, rot, world);
 	bytes_copy(world, world_rotated, sizeof(world));
-
-
 	
 	Mat4LookAtLH(view, g_engine_camera.position, g_engine_camera.target, g_engine_camera.up);
 	
@@ -376,19 +434,27 @@ BeginFrame(renderer *_renderer)
 	
 	// Debug:wireframe mode
 	_renderer->context->RSSetState(_renderer->rs_wireframe);
-	_renderer->context->DrawIndexed(_renderer->cube_index_count, 0, 0);
+	
+	_renderer->context->DrawIndexed(g_test_gpu_mesh.index_count, 0, 0);
 }
 
 
 internal_f void
-EndFrame(renderer *_renderer)
+EndFrame(renderer_t *_renderer)
 {
 	_renderer->swap_chain->Present(1, 0);
 }
 
 
+internal_f void
+RenderMesh(mesh_t *asset)
+{
+	// for every mesh, we have to get the gpu_mesh, and then render that. 
+}
+
+
 global_f void
-RendererUpdate()
+RendererUpdate(engine_shared_data_t *engine_data)
 {
 	BeginFrame(&g_renderer);
 	

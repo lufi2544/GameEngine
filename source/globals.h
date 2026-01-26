@@ -3,5 +3,8 @@
 
 ///////// Global variables along the engine ////////
 
-struct engine;
-global engine *g_engine;
+struct engine_t;
+global engine_t *g_engine;
+
+
+#define MAX_MESH_COUNT 10

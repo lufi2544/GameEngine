@@ -40,9 +40,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 }
 
 
-window CreateAWindow(u32 x, u32 y, u32 h, u32 w)
+window_t CreateAWindow(u32 x, u32 y, u32 h, u32 w)
 {
-	window result;
+	window_t result;
 	
 	// Window class registration.
 	HINSTANCE Instance = GetModuleHandle(0);

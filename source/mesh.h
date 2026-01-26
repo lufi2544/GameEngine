@@ -1,21 +1,21 @@
 /* date = January 26th 2026 0:13 pm */
 
 
-struct texture_uv
+struct texture_uv_t
 {
 	f32 u;
 	f32 v;
 };
 
-struct face
+struct face_t
 {
 	s32 a;
 	s32 b;
 	s32 c;
 	
-	texture_uv a_uv;
-	texture_uv b_uv;
-	texture_uv c_uv;
+	texture_uv_t a_uv;
+	texture_uv_t b_uv;
+	texture_uv_t c_uv;
 	
 };
 
@@ -23,7 +23,7 @@ struct face
 typedef u32 color_t;
 
 // We use the  UV coordinate method for mapping the texture to the faces.
-struct texture
+struct texture_t
 {
 	color_t *buffer;
 	s32 w;
@@ -31,20 +31,20 @@ struct texture
 };
 
 
-struct mesh
+struct mesh_t
 {
-	vec3 *verteces;
-	face *faces;
-	texture_uv *uv_coords;
-	texture *texture;
+	vec3_t *verteces;
+	face_t *faces;
+	texture_uv_t *uv_coords;
+	texture_t *texture;
 	
 	u32 vertex_num;
 	u32 face_num;
 	u32 uv_coords_num;
 	u32 texture_id;
 	
-	vec3 rotation;
-	vec3 scale;
-	vec3 location;
-	vec3 translation; // TODO see if this is needed...	
+	vec3_t rotation;
+	vec3_t scale;
+	vec3_t location;
+	vec3_t translation; // TODO see if this is needed...	
 };
