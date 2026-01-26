@@ -5,6 +5,11 @@
 #include "d3dcompiler.h"
 
 
+//////// This the windows platform renderer, for now I have a list of gpu_mesh_t that will be the real GPU data that we will put to the GPU for it to render.
+///  The idea in the future is to have a real pipeline, where we can remov and add meshes at runtime( mark them as stale or something ), and a proper memory
+///  managment for the CPU side( right now I have a list_t for the gpu_mesh_t, but this is not optimal, since we intend to have contiguous memory on this, maybe array? or index hash map to a preallocated array or something... )
+///////
+
 // TODO: move this to another .h
 struct camera_t
 {
@@ -42,48 +47,6 @@ struct gpu_vertex_t
 };
 
 
-
-
-global vertex_t triangle_verteces[] = 
-{
-    { -1.0f,  1.0f, 0.0f,  1, 0, 0, 1 },
-    {  1.0f, -1.0f, 0.0f,  0, 1, 0, 1 },
-    { -1.0f, -1.0f, 0.0f,  0, 0, 1, 1 },
-};
-
-
-global u32 cube_indices[] =
-{
-    // Front
-    0,1,2,  0,2,3,
-    // Back
-    4,6,5,  4,7,6,
-    // Left
-    4,5,1,  4,1,0,
-    // Right
-    3,2,6,  3,6,7,
-    // Top
-    4,0,3,  4,3,7,
-    // Bottom
-    1,5,6,  1,6,2,
-};
-
-
-global vertex_t cube_vertices[] =
-{
-    // Front face
-    { -1,  1, -1,  1,0,0,1 }, // 0
-    {  1,  1, -1,  0,1,0,1 }, // 1
-    {  1, -1, -1,  0,0,1,1 }, // 2
-    { -1, -1, -1,  1,1,0,1 }, // 3
-	
-    // Back face
-    { -1,  1,  1,  1,0,1,1 }, // 4
-    {  1,  1,  1,  0,1,1,1 }, // 5
-    {  1, -1,  1,  1,1,1,1 }, // 6
-    { -1, -1,  1,  0,0,0,1 }, // 7
-};
-
 struct renderer_t
 {
 	ID3D11Device* device;
@@ -104,11 +67,13 @@ struct renderer_t
 	ID3D11RasterizerState *rs_wireframe;
 	ID3D11RasterizerState *rs_solid;	
 	
+	list_t gpu_meshes; // gpu_mesh_t
 };
 
 // TODO move this elsewhere
 global u32 g_mesh_num;
 
+// buffer model - view - projection
 struct constant_buffer_mvp
 {
 	float mvp[16];
@@ -350,9 +315,11 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset)
 }
 
 global_f void
-RendererComputeImportedMesh(mesh_t *_mesh)
+RendererComputeImportedMesh(mesh_t *_mesh, engine_shared_data_t *engine_data)
 {
-	g_test_gpu_mesh = RendererCreateMeshFromasset(&g_renderer, _mesh);	
+	renderer_t *renderer = &g_renderer;
+	gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(renderer, _mesh);
+	LIST_ADD(&engine_data->memory->permanent, renderer->gpu_meshes, gpu_mesh, gpu_mesh_t);		
 }
 
 internal_f void

@@ -614,7 +614,7 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data_t *engine_data)
 	mesh_t *imported = &engine_data->meshes[engine_data->mesh_num++];
 	
 	// Renderer "callback"
-	RendererComputeImportedMesh(imported);
+	RendererComputeImportedMesh(imported, engine_data);
 	
 	
 	printf("Mesh with : %i verteces. \n", imported->vertex_num);		
