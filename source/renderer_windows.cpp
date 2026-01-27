@@ -322,6 +322,57 @@ RendererComputeImportedMesh(mesh_t *_mesh, engine_shared_data_t *engine_data)
 	LIST_ADD(&engine_data->memory->permanent, renderer->gpu_meshes, gpu_mesh, gpu_mesh_t);		
 }
 
+
+internal_f void
+RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform)
+{
+	UINT stride = sizeof(gpu_vertex_t);
+	UINT offset = 0;
+			
+	// Bind geometry
+    renderer->context->IASetVertexBuffers(0, 1, &mesh->vertex_buffer, &stride, &offset);
+    renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+	
+    // Build world matrix from transform
+    float world[16];
+    float view[16];
+    float proj[16];
+    float vp[16];
+    float mvp[16];
+	
+    Mat4Identity(world);
+    TransformToMatrix(world, *transform);
+	
+    Mat4LookAtLH(view,
+                 g_engine_camera.position,
+                 g_engine_camera.target,
+                 g_engine_camera.up);
+	
+    float aspect = 800.0f / 600.0f;
+    Mat4PerspectiveLH(proj,
+                      g_engine_camera.fov,
+                      aspect,
+                      g_engine_camera.near_z,
+                      g_engine_camera.far_z);
+	
+    // MVP = proj * view * world
+    Mat4Mul(vp, proj, view);
+    Mat4Mul(mvp, vp, world);
+	
+    // Upload constant buffer
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    renderer->context->Map(renderer->cb_mvp, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	
+    constant_buffer_mvp* cb = (constant_buffer_mvp*)mapped.pData;
+    bytes_copy(cb->mvp, mvp, sizeof(mvp));
+	
+    renderer->context->Unmap(renderer->cb_mvp, 0);
+    renderer->context->VSSetConstantBuffers(0, 1, &renderer->cb_mvp);
+	
+    // Draw
+    renderer->context->DrawIndexed(mesh->index_count, 0, 0);
+}
+
 internal_f void
 BeginFrame(renderer_t *_renderer)
 {	
@@ -335,13 +386,6 @@ BeginFrame(renderer_t *_renderer)
 											  0
 											  );
 	
-	UINT stride = sizeof(gpu_vertex_t);
-	UINT offset = 0;
-	
-	////// Input Assembly ////
-
-	_renderer->context->IASetVertexBuffers(0, 1, &g_test_gpu_mesh.vertex_buffer, &stride, &offset);	
-	_renderer->context->IASetIndexBuffer(g_test_gpu_mesh.index_buffer, DXGI_FORMAT_R32_UINT, 0);	
 	_renderer->context->IASetInputLayout(_renderer->input_layout);	
 	_renderer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Treat the input as triagles	
 
@@ -353,57 +397,10 @@ BeginFrame(renderer_t *_renderer)
 	_renderer->context->PSSetShader(_renderer->pixel_shader, 0, 0);
 	
 	
-	float world[16];
-	float view[16];
-	float proj[16];
-	float vp[16];
-	float mvp[16];
-	
-	Mat4Identity(world);
-	transform_t local_transform;
-	local_transform.position = {0,0, 0};
-	local_transform.scale = {1, 1, 1};
-	
-	
-	static float angle = 0.0f;
-	angle += 0.01f; // later use dt
-	
-	float rot[16];
-	Mat4RotationY(rot, angle);
-	
-	TransformToMatrix(world, local_transform);
-	
-	// world = rot * world
-	float world_rotated[16];
-	Mat4Mul(world_rotated, rot, world);
-	bytes_copy(world, world_rotated, sizeof(world));
-	
-	Mat4LookAtLH(view, g_engine_camera.position, g_engine_camera.target, g_engine_camera.up);
-	
-	float aspect = 800.0f / 600.0f;
-	Mat4PerspectiveLH(proj, g_engine_camera.fov, aspect, g_engine_camera.near_z, g_engine_camera.far_z);
-	
-	// MVP = proj * view * world
-	Mat4Mul(vp, proj, view);
-	Mat4Mul(mvp, vp, world);
-	
-	
-	D3D11_MAPPED_SUBRESOURCE mapped = {};
-	_renderer->context->Map(_renderer->cb_mvp, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-	
-	constant_buffer_mvp* cb = (constant_buffer_mvp*)(mapped.pData);
-	bytes_copy(cb->mvp, mvp, sizeof(mvp));
-	
-	_renderer->context->Unmap(_renderer->cb_mvp, 0);
-	
-	_renderer->context->VSSetConstantBuffers(0, 1, &_renderer->cb_mvp);
-	
-	
 	// Debug:wireframe mode
-	_renderer->context->RSSetState(_renderer->rs_wireframe);
-	
-	_renderer->context->DrawIndexed(g_test_gpu_mesh.index_count, 0, 0);
+	_renderer->context->RSSetState(_renderer->rs_wireframe);	
 }
+
 
 
 internal_f void
@@ -414,9 +411,24 @@ EndFrame(renderer_t *_renderer)
 
 
 internal_f void
-RenderMesh(mesh_t *asset)
+RenderMeshes(renderer_t *renderer)
 {
-	// for every mesh, we have to get the gpu_mesh, and then render that. 
+	// we will just render the list in this case.For now this is what I have, is not cache friendly neither optimal, but is fine for now.	
+	gpu_mesh_t *mesh = 0;
+	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
+	{
+		transform_t transform = {};
+		transform.position = {0, 0, 0};
+		transform.scale = {1, 1, 1};
+		
+		static float angle = 0.0f;
+		angle += 0.01f;
+		
+		transform.rotation = {0, angle, 0};
+		
+		RenderGPUMesh(renderer, mesh, &transform);
+		
+	}
 }
 
 
@@ -424,6 +436,8 @@ global_f void
 RendererUpdate(engine_shared_data_t *engine_data)
 {
 	BeginFrame(&g_renderer);
+	
+	RenderMeshes(&g_renderer);
 	
 	EndFrame(&g_renderer);
 }

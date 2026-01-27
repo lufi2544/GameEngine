@@ -119,14 +119,65 @@ Mat4PerspectiveLH(float* m, float fovY, float aspect, float zn, float zf)
     m[14] = -zn * zf / (zf - zn);
 }
 
+internal_f void
+Mat4RotationX(float* m, float angle)
+{
+    Mat4Identity(m);
+	
+    float c = cosf(angle);
+    float s = sinf(angle);
+	
+    m[5]  = c;
+    m[6]  = s;
+    m[9]  = -s;
+    m[10] = c;
+}
+
+internal_f void
+Mat4RotationY(float* m, float angle)
+{
+    Mat4Identity(m);
+	
+    float c = cosf(angle);
+    float s = sinf(angle);
+	
+    m[0]  = c;
+    m[2]  = -s;
+    m[8]  = s;
+    m[10] = c;
+}
+
+internal_f void
+Mat4RotationZ(float* m, float angle)
+{
+    Mat4Identity(m);
+	
+    float c = cosf(angle);
+    float s = sinf(angle);
+	
+    m[0] = c;
+    m[1] = s;
+    m[4] = -s;
+    m[5] = c;
+}
+
 
 internal_f void
 TransformToMatrix(float* out, transform_t t)
 {
     float T[16];
     float S[16];
-    float R[16]; // later
+    float Rx[16];
+    float Ry[16];
+    float Rz[16];
 	
+    float Rxy[16];
+    float Rxyz[16];
+	
+    float RS[16];
+    float TRS[16];
+	
+    // Identity
     Mat4Identity(T);
     Mat4Identity(S);
 	
@@ -140,23 +191,20 @@ TransformToMatrix(float* out, transform_t t)
     S[5]  = t.scale.y;
     S[10] = t.scale.z;
 	
-    // For now, skip rotation
-    float TS[16];
-    Mat4Mul(TS, T, S);
+    // Rotation matrices
+    Mat4RotationX(Rx, t.rotation.x);
+    Mat4RotationY(Ry, t.rotation.y);
+    Mat4RotationZ(Rz, t.rotation.z);
 	
-    bytes_copy(out, TS, sizeof(float)*16);
-}
-
-internal_f void
-Mat4RotationY(float* m, float angle)
-{
-    Mat4Identity(m);
+    // Combine rotations: R = Rz * Ry * Rx (common convention)
+    Mat4Mul(Rxy, Ry, Rx);
+    Mat4Mul(Rxyz, Rz, Rxy);
 	
-    float c = cosf(angle);
-    float s = sinf(angle);
+    // RS = R * S
+    Mat4Mul(RS, Rxyz, S);
 	
-    m[0]  =  c;
-    m[2]  =  s;
-    m[8]  = -s;
-    m[10] =  c;
+    // TRS = T * R * S
+    Mat4Mul(TRS, T, RS);
+	
+    bytes_copy(out, TRS, sizeof(float) * 16);
 }
