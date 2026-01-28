@@ -495,12 +495,11 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data_t *engine_data)
 	result.face_num = 0;
 	result.vertex_num = 0;
 	result.uv_coords_num = 0;
-	result.rotation.x = 0;
-	result.rotation.y = 0;
-	result.rotation.z = 0;
-	result.scale.x = 1;
-	result.scale.y = 1;
-	result.scale.z = 1;
+	
+	result.transform = {};
+	result.transform.scale.x = 1;
+	result.transform.scale.y = 1;
+	result.transform.scale.z = 1;
 	
 	if (_file_name == 0)
 	{

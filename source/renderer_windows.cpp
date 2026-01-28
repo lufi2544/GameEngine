@@ -60,9 +60,11 @@ struct renderer_t
 	
 	ID3D11Texture2D *depth_buffer;
 	ID3D11DepthStencilView *depth_view;
+	ID3D11DepthStencilState* ds_wireframe_overlay;
 	
 	// mvp -> model/view/projection
 	ID3D11Buffer *cb_mvp;	
+	ID3D11Buffer *cb_debug;
 	
 	ID3D11RasterizerState *rs_wireframe;
 	ID3D11RasterizerState *rs_solid;	
@@ -77,6 +79,13 @@ global u32 g_mesh_num;
 struct constant_buffer_mvp
 {
 	float mvp[16];
+};
+
+struct constant_buffer_debug
+{
+	f32 debugColor[4];
+	int useDebugColor;
+	f32 padding[3]; // 16-byte alingment TODO:WHY
 };
 
 
@@ -134,7 +143,7 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	{
 		D3D11_RASTERIZER_DESC rs = {};
 		rs.FillMode = D3D11_FILL_SOLID;
-		rs.CullMode = D3D11_CULL_BACK;
+		rs.CullMode = D3D11_CULL_NONE; 
 		rs.DepthClipEnable = TRUE;
 		
 		_renderer->device->CreateRasterizerState(&rs, &_renderer->rs_solid);
@@ -149,7 +158,17 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 		rs.DepthClipEnable = TRUE;
 		
 		_renderer->device->CreateRasterizerState(&rs, &_renderer->rs_wireframe);
+								
+	}
+	
+	// Depth stencil for wireframe overlay
+	{
+		D3D11_DEPTH_STENCIL_DESC ds = {};
+		ds.DepthEnable = TRUE;
+		ds.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		ds.DepthFunc = D3D11_COMPARISON_LESS_EQUAL;
 		
+		_renderer->device->CreateDepthStencilState(&ds, &_renderer->ds_wireframe_overlay);
 	}
 	
 	
@@ -183,7 +202,7 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	// target view -> back buffer | depth_view -> depth_buffer
 	_renderer->context->OMSetRenderTargets(1, &_renderer->target_view, _renderer->depth_view);
 	
-	// Viewport
+	// Viewport // TODO: resizing?
 	D3D11_VIEWPORT vp = { };
 	vp.Width =(FLOAT)_params.width;
 	vp.Height =(FLOAT)_params.height;
@@ -200,6 +219,18 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	constant_buffer_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 	
 	_renderer->device->CreateBuffer(&constant_buffer_desc, 0, &_renderer->cb_mvp);	
+	
+	
+	// Debug constant buffer for wireframe
+	D3D11_BUFFER_DESC debug_desc = {};
+	debug_desc.Usage = D3D11_USAGE_DYNAMIC;
+	debug_desc.ByteWidth = sizeof(constant_buffer_debug);
+	debug_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	debug_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+				
+	_renderer->device->CreateBuffer(&debug_desc, 0, &_renderer->cb_debug);
+	
+	
 	
 	ID3DBlob *vs_blob = 0;
 	ID3DBlob *ps_blob = 0;
@@ -324,7 +355,23 @@ RendererComputeImportedMesh(mesh_t *_mesh, engine_shared_data_t *engine_data)
 
 
 internal_f void
-RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform)
+SetDebugColor(renderer_t* renderer, f32 r, f32 g, f32 b, f32 a, int use)
+{
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    renderer->context->Map(renderer->cb_debug, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	
+    constant_buffer_debug* cb = (constant_buffer_debug*)mapped.pData;
+    cb->debugColor[0] = r;
+    cb->debugColor[1] = g;
+    cb->debugColor[2] = b;
+    cb->debugColor[3] = a;
+    cb->useDebugColor = use;
+	
+    renderer->context->Unmap(renderer->cb_debug, 0);
+}
+
+internal_f void
+RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f32* projTview)
 {
 	UINT stride = sizeof(gpu_vertex_t);
 	UINT offset = 0;
@@ -334,30 +381,23 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform)
     renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 	
     // Build world matrix from transform
-    float world[16];
-    float view[16];
-    float proj[16];
-    float vp[16];
-    float mvp[16];
+    f32 world_matrix[16];
+    f32 vp[16];
+    f32 mvp[16];
+		
+    Mat4Identity(world_matrix);
 	
-    Mat4Identity(world);
-    TransformToMatrix(world, *transform);
+	// Getting the transform matrix from local space to world space - 
+	// (Column major) World = Transform * Rotation * Scale
+    TransformToMatrix(world_matrix, *transform);
+		
+    //(Column major) world_matrix(mvp) = (proj * view * world)
+    Mat4Mul(mvp, projTview, world_matrix);
 	
-    Mat4LookAtLH(view,
-                 g_engine_camera.position,
-                 g_engine_camera.target,
-                 g_engine_camera.up);
-	
-    float aspect = 800.0f / 600.0f;
-    Mat4PerspectiveLH(proj,
-                      g_engine_camera.fov,
-                      aspect,
-                      g_engine_camera.near_z,
-                      g_engine_camera.far_z);
-	
-    // MVP = proj * view * world
-    Mat4Mul(vp, proj, view);
-    Mat4Mul(mvp, vp, world);
+	//////////////////////
+	/// Whenever we use the Map function, we basically get the GPU memory and do stuff with it, in this case we are passing the 
+	/// model - view - projection matrix to the vertex shader, so in the vertex shader, we can use it in parallel for every vertex.
+	/////////////////////
 	
     // Upload constant buffer
     D3D11_MAPPED_SUBRESOURCE mapped = {};
@@ -367,7 +407,10 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform)
     bytes_copy(cb->mvp, mvp, sizeof(mvp));
 	
     renderer->context->Unmap(renderer->cb_mvp, 0);
+	
+	// Basically setting the params to the registers passed to the shader
     renderer->context->VSSetConstantBuffers(0, 1, &renderer->cb_mvp);
+	renderer->context->PSSetConstantBuffers(1, 1, &renderer->cb_debug);
 	
     // Draw
     renderer->context->DrawIndexed(mesh->index_count, 0, 0);
@@ -394,11 +437,7 @@ BeginFrame(renderer_t *_renderer)
 	_renderer->context->VSSetShader(_renderer->vertex_shader, 0, 0);
 	
 	// Pixel shader
-	_renderer->context->PSSetShader(_renderer->pixel_shader, 0, 0);
-	
-	
-	// Debug:wireframe mode
-	_renderer->context->RSSetState(_renderer->rs_wireframe);	
+	_renderer->context->PSSetShader(_renderer->pixel_shader, 0, 0);	
 }
 
 
@@ -413,11 +452,28 @@ EndFrame(renderer_t *_renderer)
 internal_f void
 RenderMeshes(renderer_t *renderer)
 {
+	float view[16];
+    float proj[16];
+	
+	Mat4LookAtLH(view,
+                 g_engine_camera.position,
+                 g_engine_camera.target,
+                 g_engine_camera.up);
+	
+	//TODO: get from the main window
+    float aspect = 800.0f / 600.0f;
+    Mat4PerspectiveLH(proj,
+                      g_engine_camera.fov,
+                      aspect,
+                      g_engine_camera.near_z,
+                      g_engine_camera.far_z);
+	
 	// we will just render the list in this case.For now this is what I have, is not cache friendly neither optimal, but is fine for now.	
 	gpu_mesh_t *mesh = 0;
 	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
 	{
 		transform_t transform = {};
+		// TODO: we would need to handle some way the transform from this, from cpu to gpu.
 		transform.position = {0, 0, 0};
 		transform.scale = {1, 1, 1};
 		
@@ -426,7 +482,22 @@ RenderMeshes(renderer_t *renderer)
 		
 		transform.rotation = {0, angle, 0};
 		
-		RenderGPUMesh(renderer, mesh, &transform);
+		// SOLID PASS
+		renderer->context->RSSetState(renderer->rs_solid);
+		renderer->context->OMSetDepthStencilState(nullptr, 0);
+		SetDebugColor(renderer, 0, 0, 0, 0, 0); // use vertex color
+		
+		f32 projTview [16];
+		Mat4Mul(projTview, proj, view);
+		RenderGPUMesh(renderer, mesh, &transform, projTview);
+		
+		// WIREFRAME PASS
+		renderer->context->RSSetState(renderer->rs_wireframe);
+		renderer->context->OMSetDepthStencilState(renderer->ds_wireframe_overlay, 0);
+		SetDebugColor(renderer, 0, 0, 0, 1, 1); // white 
+		RenderGPUMesh(renderer, mesh, &transform, projTview);
+		
+		renderer->context->OMSetDepthStencilState(nullptr, 0);
 		
 	}
 }

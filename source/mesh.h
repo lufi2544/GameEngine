@@ -43,8 +43,5 @@ struct mesh_t
 	u32 uv_coords_num;
 	u32 texture_id;
 	
-	vec3_t rotation;
-	vec3_t scale;
-	vec3_t location;
-	vec3_t translation; // TODO see if this is needed...	
+	transform_t transform;
 };

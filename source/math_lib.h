@@ -2,6 +2,7 @@
 
 #define PI 3.14159f
 
+
 struct  vec3_t
 {	
 	f32 x, y, z;
@@ -74,6 +75,21 @@ Mat4LookAtLH(float* m, vec3_t eye, vec3_t at, vec3_t up)
 }
 
 
+////////////////////
+/// Matrix 
+///////////////////
+
+/**
+ * The matrices are in column major form, so when multiplied for begin applied to a vec3
+ * we have to do it the opposite way.
+ * 
+ * Column Major: 
+ * View * Proj * Translation * Rotation * Scale * Vertex -> opeartions have to be done in the opposite way
+ * 
+ * Row Major : 
+ * Vertex * Scale * Rotation * Translation * Proj * View -> this is a more "common" equation way. 
+ * 
+*/
 internal_f void
 Mat4Identity(f32 *m)
 {
@@ -161,7 +177,6 @@ Mat4RotationZ(float* m, float angle)
     m[5] = c;
 }
 
-
 internal_f void
 TransformToMatrix(float* out, transform_t t)
 {
@@ -171,8 +186,8 @@ TransformToMatrix(float* out, transform_t t)
     float Ry[16];
     float Rz[16];
 	
-    float Rxy[16];
-    float Rxyz[16];
+    float Ryx[16];
+    float Rzyx[16];
 	
     float RS[16];
     float TRS[16];
@@ -197,11 +212,11 @@ TransformToMatrix(float* out, transform_t t)
     Mat4RotationZ(Rz, t.rotation.z);
 	
     // Combine rotations: R = Rz * Ry * Rx (common convention)
-    Mat4Mul(Rxy, Ry, Rx);
-    Mat4Mul(Rxyz, Rz, Rxy);
+    Mat4Mul(Ryx, Ry, Rx);
+    Mat4Mul(Rzyx, Rz, Ryx);
 	
     // RS = R * S
-    Mat4Mul(RS, Rxyz, S);
+    Mat4Mul(RS, Rzyx, S);
 	
     // TRS = T * R * S
     Mat4Mul(TRS, T, RS);
