@@ -9,8 +9,9 @@
 #include "window.h"
 #include "math_lib.h"
 
-#include "application.h"
+
 #include "engine.h"
+#include "application.h"
 
 #include "renderer.h"
 #include "platform.h"

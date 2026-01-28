@@ -44,8 +44,8 @@ struct gpu_vertex_t
 {
 	f32 x, y, z;
 	f32 r, g, b, a;
+	f32 u, v;
 };
-
 
 struct renderer_t
 {
@@ -97,8 +97,6 @@ struct renderer_init_params
 	u32 width;
 	u32 height;
 };
-
-
 
 internal_f
 bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)

@@ -1,5 +1,6 @@
 /* date = January 26th 2026 0:08 pm */
 
+struct mesh_t;
 
 struct engine_shared_data_t
 {
