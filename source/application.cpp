@@ -2,7 +2,7 @@
 global_f void
 ApplicationInit(engine_shared_data_t *engine_data)
 {
-	mesh_t* Plane = CreateMeshFromFile("data/monkey.obj", &g_engine->shared_data);	
+	mesh_t* Plane = CreateMeshFromFile(&g_engine->shared_data, "data/drone.obj", "data/drone.png");	
 	
 	
 }

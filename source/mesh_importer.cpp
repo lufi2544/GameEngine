@@ -488,7 +488,7 @@ ConvertToFace(mesh_t *_mesh, importer_element_t *first_face_element, buffer_t so
 // I would like to change this to struct of arrays, so we can have id DOD and better for cache locality
 // in this case, maybe allocting everything in the temp memory and then passing it to the permanent memory?..
 global_f mesh_t*
-CreateMeshFromFile(const char *_file_name, engine_shared_data_t *engine_data)
+CreateMeshFromFile(engine_shared_data_t *engine_data, const char *_file_name, const char* _texture_name)
 {
 	mesh_t result;
 	result.texture = 0;
@@ -612,8 +612,9 @@ CreateMeshFromFile(const char *_file_name, engine_shared_data_t *engine_data)
 	engine_data->meshes[engine_data->mesh_num] = result;
 	mesh_t *imported = &engine_data->meshes[engine_data->mesh_num++];
 	
+	// TODO: _texture_name will be added later on ??
 	// Renderer "callback"
-	RendererComputeImportedMesh(imported, engine_data);
+	RendererComputeImportedMesh(engine_data, imported, _texture_name);
 	
 	
 	printf("Mesh with : %i verteces. \n", imported->vertex_num);		

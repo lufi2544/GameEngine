@@ -1219,6 +1219,11 @@ upng_new_from_file(arena_t *_arena, const char *filename)
 	FILE *file;
 	long size;
 	
+	if(!filename)
+	{
+		return NULL;
+	}
+	
 	upng = upng_new(_arena);
 	if (upng == NULL) {
 		return NULL;

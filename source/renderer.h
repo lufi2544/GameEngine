@@ -10,4 +10,4 @@ global_f void
 RendererUpdate(engine_shared_data_t *engine_data);
 
 global_f void 
-RendererComputeImportedMesh(mesh_t *_mesh, engine_shared_data_t *engine_data);
+RendererComputeImportedMesh(engine_shared_data_t *engine_data, mesh_t *_mesh, const char* _texture_name);

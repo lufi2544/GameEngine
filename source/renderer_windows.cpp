@@ -35,7 +35,10 @@ struct gpu_mesh_t
 	ID3D11Buffer* vertex_buffer;
 	ID3D11Buffer* index_buffer;
 	
-	u32 index_count;	
+	// TODO: this is the texture, should be here?
+	ID3D11ShaderResourceView *texture_srv;
+	
+	u32 vertex_count;	
 };
 
 global gpu_mesh_t g_test_gpu_mesh;
@@ -70,6 +73,10 @@ struct renderer_t
 	ID3D11RasterizerState *rs_solid;	
 	
 	list_t gpu_meshes; // gpu_mesh_t
+	
+	
+	/// TEST-> TODO: Add to the texture manager.
+	ID3D11SamplerState *sampler;
 };
 
 // TODO move this elsewhere
@@ -246,11 +253,12 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD",    0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 		
 	_renderer->device->CreateInputLayout(
 										 layout, 
-										 2, 
+										 3, 
 										 vs_blob->GetBufferPointer(),
 										 vs_blob->GetBufferSize(),
 										 &_renderer->input_layout
@@ -258,7 +266,22 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	
 	vs_blob->Release();
 	ps_blob->Release();
-			
+	
+	
+	// Texture Sampler
+	{
+		D3D11_SAMPLER_DESC samp = {};
+		samp.Filter =D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+		samp.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+		samp.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+		samp.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+		samp.ComparisonFunc = D3D11_COMPARISON_NEVER;
+		samp.MinLOD = 0;
+		samp.MaxLOD = D3D11_FLOAT32_MAX;
+		
+		_renderer->device->CreateSamplerState(&samp, &_renderer->sampler);
+	}
+	
 	return true;	
 }
 
@@ -274,33 +297,132 @@ RendererInit()
 }
 
 
-internal_f gpu_mesh_t
-RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset)
+internal_f u32
+hash_function_gpu_vertex(void *key, u32 key_size)
 {
-	SCRATCH();
+	gpu_vertex_t *vertex = (gpu_vertex_t*)key;	
+	return vertex->u + vertex->v;
+}
+
+
+/*
+ * IMPORTANT:
+ * @juanes.rayo:
+ * In terms of memory allocation in the CPU when creating a mesh what we do is to allocate memory for the verteces with a MAX verteces that we allocate.
+ * What I would like to do is to determine the memory that goes to the renderer, and if out of memory, then we just can't import the mesh or something.
+*/
+internal_f gpu_mesh_t
+RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, mesh_t *asset, const char *_texture_name)
+{
+	S_SCRATCH(engine_data->memory);	
 	
-	gpu_mesh_t result = {};
+	u32 asset_max_verteces = asset->face_num * 3;
+	gpu_mesh_t result = {};		
+	hash_map_t vertex_to_index_map /*gpu_vertex - u32*/ = HASH_MAP(temp_arena, asset_max_verteces, gpu_vertex_t, u32, hash_function_gpu_vertex);
 	
-	// Build the Vertex Buffer
+	// Crating a buffer with the max verteces as the faces * 3, if none of the of the verteces are shared.
+	gpu_vertex_t *temp_verteces = push_array(temp_arena, asset_max_verteces, gpu_vertex_t);
+	u32 unique_verteces = 0;
 	
-	gpu_vertex_t* temp_verteces = (gpu_vertex_t*)push_array(temp_arena, asset->vertex_num, gpu_vertex_t);
-	
-	
-	for(u32 i = 0; i < asset->vertex_num; ++i)
+	for(u32 face_idx = 0; face_idx < asset->face_num; ++face_idx)
 	{
-		temp_verteces[i].x = asset->verteces[i].x;
-		temp_verteces[i].y = asset->verteces[i].y;
-		temp_verteces[i].z = asset->verteces[i].z;
+		face_t *face = &asset->faces[face_idx];
+				
+		{
+			// VERTEX A
+			gpu_vertex_t gpu_vertex_a = { };
+			gpu_vertex_a.u = face->a_uv.u;
+			gpu_vertex_a.v = face->a_uv.v;
+			
+			// TODO review this method in mayorana.
+			// finding the vertex by uv only, if not found, then we fill the rest of the data.
+			u32 *found_idx = (u32*)hash_map_find(&vertex_to_index_map, &gpu_vertex_a, sizeof(gpu_vertex_t));
+			if(!found_idx)
+			{
+				vec3_t vertex = asset->verteces[face->a];
+				gpu_vertex_a.x = vertex.x;
+				gpu_vertex_a.y = vertex.y;
+				gpu_vertex_a.x = vertex.z;
+				gpu_vertex_a.r = 1;
+				gpu_vertex_a.g = 1;
+				gpu_vertex_a.b = 1;
+				gpu_vertex_a.a = 1;
+												
+				temp_verteces[unique_verteces] = gpu_vertex_a;
+				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_a, unique_verteces);
+				
+				unique_verteces++;
+			}
+
+		}
 		
-		temp_verteces[i].r = 1;
-		temp_verteces[i].g = 1;
-		temp_verteces[i].b = 1;
-		temp_verteces[i].a = 1;		
+		
+		{
+			// VERTEX B
+			gpu_vertex_t gpu_vertex_b = { };
+			gpu_vertex_b.u = face->b_uv.u;
+			gpu_vertex_b.v = face->b_uv.v;
+			
+			// TODO review this method in mayorana.
+			// finding the vertex by uv only, if not found, then we fill the rest of the data.
+			u32 *found_idx = (u32*)hash_map_find(&vertex_to_index_map, &gpu_vertex_b, sizeof(gpu_vertex_t));
+			if(!found_idx)
+			{
+				vec3_t vertex = asset->verteces[face->b];
+				gpu_vertex_b.x = vertex.x;
+				gpu_vertex_b.y = vertex.y;
+				gpu_vertex_b.x = vertex.z;
+				gpu_vertex_b.r = 1;
+				gpu_vertex_b.g = 1;
+				gpu_vertex_b.b = 1;
+				gpu_vertex_b.a = 1;
+				
+				
+				temp_verteces[unique_verteces] = gpu_vertex_b;
+				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_b, unique_verteces);
+				
+				unique_verteces++;
+			}
+			
+		}
+		
+		
+		{
+			// VERTEX A
+			gpu_vertex_t gpu_vertex_c = { };
+			gpu_vertex_c.u = face->c_uv.u;
+			gpu_vertex_c.v = face->c_uv.v;
+			
+			// TODO review this method in mayorana.
+			// finding the vertex by uv only, if not found, then we fill the rest of the data.
+			u32 *found_idx = (u32*)hash_map_find(&vertex_to_index_map, &gpu_vertex_c, sizeof(gpu_vertex_t));
+			if(!found_idx)
+			{
+				vec3_t vertex = asset->verteces[face->c];
+				gpu_vertex_c.x = vertex.x;
+				gpu_vertex_c.y = vertex.y;
+				gpu_vertex_c.x = vertex.z;
+				gpu_vertex_c.r = 1;
+				gpu_vertex_c.g = 1;
+				gpu_vertex_c.b = 1;
+				gpu_vertex_c.a = 1;
+				
+				
+				temp_verteces[unique_verteces] = gpu_vertex_c;
+				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_c, unique_verteces);
+				
+				unique_verteces++;
+			}
+			
+		}
+		
 	}
+	
+					
 	
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.Usage = D3D11_USAGE_DEFAULT;
-	vb_desc.ByteWidth = asset->vertex_num * sizeof(gpu_vertex_t);
+	vb_desc.ByteWidth = unique_verteces * sizeof(gpu_vertex_t);
 	vb_desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 	
 	D3D11_SUBRESOURCE_DATA vb_data = {};
@@ -311,32 +433,52 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset)
 	
 	// Build index buffer from faces
 	
-	u32 index_count = asset->face_num * 3;
-	u32 *temp_indeces = (u32*)push_array(temp_arena, index_count, u32);
-	
-	
-	for(u32 i = 0; i < asset->face_num; ++i)
-	{
-		face_t *f = &asset->faces[i];
-		
-		temp_indeces[i * 3 + 0] = f->a;
-		temp_indeces[i * 3 + 1] = f->b;
-		temp_indeces[i * 3 + 2] = f->c;
-	}
+	u32 vertex_count = asset->face_num * 3;	
 	
 	D3D11_BUFFER_DESC ib_desc = {};
 	ib_desc.Usage = D3D11_USAGE_DEFAULT;
-	ib_desc.ByteWidth = index_count * sizeof(u32);
+	ib_desc.ByteWidth = vertex_count * sizeof(u32);
 	ib_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	
 	
 	D3D11_SUBRESOURCE_DATA ib_data = {};
 	ib_data.pSysMem = temp_indeces;
 	
+	
+	u32 *indeces = 
 	r->device->CreateBuffer(&ib_desc, &ib_data, &result.index_buffer);
 	
-	result.index_count = index_count;
+	result.vertex_count = unique_verteces;
 	
+	upng_t *png= upng_new_from_file(&g_memory.permanent, _texture_name);
+	if(png)
+	{
+		upng_decode(engine_data, png);
+		u32 width = upng_get_width(png);
+		u32 height = upng_get_height(png);
+		u8* pixels = (u8*)upng_get_buffer(png);
+		
+		D3D11_TEXTURE2D_DESC tex_desc = { };
+		tex_desc.Width = width;
+		tex_desc.Height = height;
+		tex_desc.MipLevels = 1;
+		tex_desc.ArraySize = 1;
+		tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		tex_desc.SampleDesc.Count = 1;
+		tex_desc.Usage = D3D11_USAGE_IMMUTABLE;
+		tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+		
+		D3D11_SUBRESOURCE_DATA tex_data = {};
+		tex_data.pSysMem = pixels;
+		tex_data.SysMemPitch = width * 4; // RGBA8 = 4 bytes per pixel;
+		
+		ID3D11Texture2D *texture = 0;
+		r->device->CreateTexture2D(&tex_desc, &tex_data, &texture);
+		r->device->CreateShaderResourceView(texture, 0, &result.texture_srv);
+		
+		texture->Release();
+		
+	}
 	
 	g_mesh_num++;
 	
@@ -344,10 +486,11 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset)
 }
 
 global_f void
-RendererComputeImportedMesh(mesh_t *_mesh, engine_shared_data_t *engine_data)
+RendererComputeImportedMesh(engine_shared_data_t *engine_data, mesh_t *_mesh, const char* _texture_name)
 {
-	renderer_t *renderer = &g_renderer;
-	gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(renderer, _mesh);
+	renderer_t *renderer = &g_renderer;			
+	
+	gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(engine_data, renderer, _mesh, _texture_name);
 	LIST_ADD(&engine_data->memory->permanent, renderer->gpu_meshes, gpu_mesh, gpu_mesh_t);		
 }
 
@@ -373,22 +516,22 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f3
 {
 	UINT stride = sizeof(gpu_vertex_t);
 	UINT offset = 0;
-			
+	
 	// Bind geometry
     renderer->context->IASetVertexBuffers(0, 1, &mesh->vertex_buffer, &stride, &offset);
-    renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    //renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 	
     // Build world matrix from transform
     f32 world_matrix[16];
     f32 vp[16];
     f32 mvp[16];
-		
+	
     Mat4Identity(world_matrix);
 	
 	// Getting the transform matrix from local space to world space - 
 	// (Column major) World = Transform * Rotation * Scale
     TransformToMatrix(world_matrix, *transform);
-		
+	
     //(Column major) world_matrix(mvp) = (proj * view * world)
     Mat4Mul(mvp, projTview, world_matrix);
 	
@@ -409,9 +552,12 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f3
 	// Basically setting the params to the registers passed to the shader
     renderer->context->VSSetConstantBuffers(0, 1, &renderer->cb_mvp);
 	renderer->context->PSSetConstantBuffers(1, 1, &renderer->cb_debug);
+	renderer->context->PSSetShaderResources(0, 1, &mesh->texture_srv);
+	renderer->context->PSSetSamplers(0, 1, &renderer->sampler);
 	
     // Draw
-    renderer->context->DrawIndexed(mesh->index_count, 0, 0);
+	renderer->context->IASetIndexBuffer(0, DXGI_FORMAT_UNKNOWN, 0);
+	renderer->context->Draw(mesh->vertex_count, 0);
 }
 
 internal_f void
