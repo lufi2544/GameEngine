@@ -11,18 +11,6 @@
 ///////
 
 // TODO: move this to another .h
-struct camera_t
-{
-	vec3_t position;
-	vec3_t target;
-	vec3_t up;
-	
-	f32 fov; // radians
-	f32 near_z;
-	f32 far_z;	
-};
-
-global camera_t g_engine_camera;
 
 struct vertex_t
 {
@@ -164,7 +152,7 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 		rs.DepthClipEnable = TRUE;
 		
 		_renderer->device->CreateRasterizerState(&rs, &_renderer->rs_wireframe);
-								
+        
 	}
 	
 	// Depth stencil for wireframe overlay
@@ -233,7 +221,7 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	debug_desc.ByteWidth = sizeof(constant_buffer_debug);
 	debug_desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
 	debug_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-				
+    
 	_renderer->device->CreateBuffer(&debug_desc, 0, &_renderer->cb_debug);
 	
 	
@@ -243,11 +231,11 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	
 	D3DCompileFromFile(L"triangle_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, 0);
 	D3DCompileFromFile(L"triangle_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, 0);
-
+    
 	
 	_renderer->device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &_renderer->vertex_shader);	
 	_renderer->device->CreatePixelShader(ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &_renderer->pixel_shader);
-		
+    
 	// we use a input description to create an input layout
 	// TODO: cache every input layout description and cache it???
 	D3D11_INPUT_ELEMENT_DESC layout[] =
@@ -256,7 +244,7 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD",    0, DXGI_FORMAT_R32G32_FLOAT, 0, 28, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-		
+    
 	_renderer->device->CreateInputLayout(
 										 layout, 
 										 3, 
@@ -331,10 +319,10 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	for(u32 face_idx = 0; face_idx < asset->face_num; ++face_idx)
 	{
 		face_t *face = &asset->faces[face_idx];
-				
+        
 		{
 			// VERTEX A
-				vec3_t vertex = asset->verteces[face->a];
+            vec3_t vertex = asset->verteces[face->a];
 			gpu_vertex_t gpu_vertex_a = { };
 			gpu_vertex_a.u = face->a_uv.u;
 			gpu_vertex_a.v = face->a_uv.v;
@@ -354,7 +342,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 				gpu_vertex_a.g = 1;
 				gpu_vertex_a.b = 1;
 				gpu_vertex_a.a = 1;
-												
+                
 				temp_verteces[unique_verteces] = gpu_vertex_a;
 				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_a, unique_verteces);
 				
@@ -367,13 +355,13 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 			{
 				index_buffer[indexes_num++] = *found_idx;
 			}
-
+            
 		}
 		
 		
 		{
 			// VERTEX B
-				vec3_t vertex = asset->verteces[face->b];
+            vec3_t vertex = asset->verteces[face->b];
 			gpu_vertex_t gpu_vertex_b = { };
 			gpu_vertex_b.u = face->b_uv.u;
 			gpu_vertex_b.v = face->b_uv.v;
@@ -409,7 +397,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 		
 		{
 			// VERTEX A
-				vec3_t vertex = asset->verteces[face->c];			
+            vec3_t vertex = asset->verteces[face->c];			
 			gpu_vertex_t gpu_vertex_c = { };
 			gpu_vertex_c.u = face->c_uv.u;
 			gpu_vertex_c.v = face->c_uv.v;
@@ -444,7 +432,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 		
 	}
 	
-					
+    
 	
 	D3D11_BUFFER_DESC vb_desc = {};
 	vb_desc.Usage = D3D11_USAGE_DEFAULT;
@@ -467,7 +455,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	
 	D3D11_SUBRESOURCE_DATA ib_data = {};
 	ib_data.pSysMem = index_buffer;
-		
+    
 	r->device->CreateBuffer(&ib_desc, &ib_data, &result.index_buffer);
 	
 	result.vertex_count = unique_verteces;
@@ -475,7 +463,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	
 	
 	printf("verteces: %i, indexes: %i\n", unique_verteces, indexes_num);
-
+    
 	
 	upng_t *png= upng_new_from_file(&g_memory.permanent, _texture_name);
 	if(png)
@@ -550,7 +538,7 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, ma
 	
     // Build world matrix from transform
     mat4_t world_matrix, vp, mvp;
-		
+    
 	// Getting the transform matrix from local space to world space - 
 	// (Column major) World = Transform * Rotation * Scale
     TransformToMatrix(&world_matrix, *transform);
@@ -597,7 +585,7 @@ BeginFrame(renderer_t *_renderer)
 	
 	_renderer->context->IASetInputLayout(_renderer->input_layout);	
 	_renderer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST); // Treat the input as triagles	
-
+    
 	
 	// Vertex shader
 	_renderer->context->VSSetShader(_renderer->vertex_shader, 0, 0);

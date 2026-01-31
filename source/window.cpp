@@ -1,4 +1,4 @@
-
+#ifdef _WINDOWS
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {	
 	switch (msg)
@@ -98,3 +98,8 @@ window_t CreateAWindow(u32 x, u32 y, u32 h, u32 w)
 	
 	return result;
 }
+
+#endif //_WINDOW
+
+
+

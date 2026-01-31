@@ -1,7 +1,7 @@
 /* date = January 25th 2026 11:53 am */
 
 #define PI 3.14159f
-
+#include "math.h"
 
 struct  vec3_t
 {	

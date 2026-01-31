@@ -3,6 +3,7 @@
 #include "engine_shared_data.h"
 #include "mesh.h"
 
+#include "camera.h"
 #include "asset_manager.h"
 #include "file_reader.h"
 
