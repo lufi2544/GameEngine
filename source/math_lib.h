@@ -133,12 +133,14 @@ Mat4PerspectiveLH(mat4_t* m, float fovY, float aspect, float zn, float zf)
 internal_f void
 Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
 {
+	// the camera coordinate system axis.
     vec3_t zaxis = Vec3Normalize(Vec3Sub(at, eye));
     vec3_t xaxis = Vec3Normalize(Vec3Cross(up, zaxis));
     vec3_t yaxis = Vec3Cross(zaxis, xaxis);
 	
-    Mat4Identity(out);
 	
+	// setting the coordinate system in the matrix so we multiply the input point to the DotProduct of the coordinate system axis.
+	// x = dot(px, xaxis.x)
     out->d[0]  = xaxis.x;
     out->d[1]  = xaxis.y;
     out->d[2]  = xaxis.z;
@@ -151,6 +153,10 @@ Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
     out->d[9]  = zaxis.y;
     out->d[10] = zaxis.z;
 	
+	
+	// Choose the translation so that the camera position maps to the origin in camera space:
+	// For P = eye:
+	// x_camera = dot(P, xaxis) + tx = 0  =>  tx = -dot(xaxis, eye)
     out->d[12] = -Vec3Dot(xaxis, eye);
     out->d[13] = -Vec3Dot(yaxis, eye);
     out->d[14] = -Vec3Dot(zaxis, eye);
