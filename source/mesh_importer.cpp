@@ -593,7 +593,7 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, const char *_file_name, co
 				
 				texture_uv_t uv;
 				uv.u = u;
-				uv.v = v;				
+				uv.v = 1 - v;				
 				result.uv_coords[current_uv++] = uv;
 				it = it->next_sibling->next_sibling;
 				

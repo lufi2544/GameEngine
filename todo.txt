@@ -1,7 +1,27 @@
 //////////
 /// Engine project
 
+
+////////////////
+//// DAY
+///////////////
+
+- Finishing to add the vertex buffer and index buffer for the unique mesh verteces.
+
+
+////////////////////////////////
+
+- Crate a unique vertex buffer and index buffer with all the indeces, bind to the renderer and DrawIndexed.
+
+	Mesh importing
+	- Create a hash map for the current indeces, then:
+		- hash_map<key, u32> vertex exists - lookup table to quickly see if the vertex exists when importing the mesh.
+				: y - then we add a new index to the index array with the already present idx of the vertex.
+				: n - then create a new entry in the vertex buffer, add the new vertex idx to the hash map, and to the index buffer.
+
+
 - Create a list of max meshes that can be represented at once in memory.
+- Give the renderer its own arena for the textures and meshes -> separate the engine between arenas so everything is closer in memory.
 
 RENDERER:
 	<-> Organize the CPU - GPU render meshes, so we can access the data when needed or delete it.

@@ -2,7 +2,7 @@
 global_f void 
 EngineInit()
 {	
-	g_engine->main_window = CreateAWindow(200, 200, 800, 600);	
+	g_engine->main_window = CreateAWindow(200, 200, 1080, 1920);
 	g_engine->shared_data.memory = &g_memory;
 	
 	if(RendererInit())

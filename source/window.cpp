@@ -75,6 +75,8 @@ window_t CreateAWindow(u32 x, u32 y, u32 h, u32 w)
 	
 	
 	result.handle = window_handle;	
+	result.height = h;
+	result.width = w;
 	if(window_handle == 0)
 	{
 		MAYORANA_LOG("The window handle is null");

@@ -39,6 +39,7 @@ struct gpu_mesh_t
 	ID3D11ShaderResourceView *texture_srv;
 	
 	u32 vertex_count;	
+	u32 indexes_count;
 };
 
 global gpu_mesh_t g_test_gpu_mesh;
@@ -290,8 +291,8 @@ RendererInit()
 {
 	renderer_init_params params;
 	params.window_handle = g_engine->main_window.handle;
-	params.width = 800;
-	params.height = 600;
+	params.width = g_engine->main_window.width;
+	params.height = g_engine->main_window.height;
 	
 	return RenderInitWindows(&g_renderer, params);
 }
@@ -301,7 +302,7 @@ internal_f u32
 hash_function_gpu_vertex(void *key, u32 key_size)
 {
 	gpu_vertex_t *vertex = (gpu_vertex_t*)key;	
-	return vertex->u + vertex->v;
+	return vertex->u + vertex->v  + vertex->x + vertex->y + vertex->z;
 }
 
 
@@ -324,25 +325,31 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	gpu_vertex_t *temp_verteces = push_array(temp_arena, asset_max_verteces, gpu_vertex_t);
 	u32 unique_verteces = 0;
 	
+	u32 *index_buffer = push_array(temp_arena, asset_max_verteces, u32);
+	u32 indexes_num = 0;
+	
 	for(u32 face_idx = 0; face_idx < asset->face_num; ++face_idx)
 	{
 		face_t *face = &asset->faces[face_idx];
 				
 		{
 			// VERTEX A
+				vec3_t vertex = asset->verteces[face->a];
 			gpu_vertex_t gpu_vertex_a = { };
 			gpu_vertex_a.u = face->a_uv.u;
 			gpu_vertex_a.v = face->a_uv.v;
+			gpu_vertex_a.x = vertex.x;
+			gpu_vertex_a.y = vertex.y;
+			gpu_vertex_a.z = vertex.z;
 			
 			// TODO review this method in mayorana.
 			// finding the vertex by uv only, if not found, then we fill the rest of the data.
+			
+			// we have found the vertex, that means we have already the vertex for it, find in the map and store in the index buffer,
+			// if now found, add to the hash_map for later check and add the added index to the index buffer.
 			u32 *found_idx = (u32*)hash_map_find(&vertex_to_index_map, &gpu_vertex_a, sizeof(gpu_vertex_t));
 			if(!found_idx)
 			{
-				vec3_t vertex = asset->verteces[face->a];
-				gpu_vertex_a.x = vertex.x;
-				gpu_vertex_a.y = vertex.y;
-				gpu_vertex_a.x = vertex.z;
 				gpu_vertex_a.r = 1;
 				gpu_vertex_a.g = 1;
 				gpu_vertex_a.b = 1;
@@ -351,7 +358,14 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 				temp_verteces[unique_verteces] = gpu_vertex_a;
 				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_a, unique_verteces);
 				
+				// index buffer addition
+				index_buffer[indexes_num++] = unique_verteces;
+				
 				unique_verteces++;
+			}
+			else
+			{
+				index_buffer[indexes_num++] = *found_idx;
 			}
 
 		}
@@ -359,19 +373,19 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 		
 		{
 			// VERTEX B
+				vec3_t vertex = asset->verteces[face->b];
 			gpu_vertex_t gpu_vertex_b = { };
 			gpu_vertex_b.u = face->b_uv.u;
 			gpu_vertex_b.v = face->b_uv.v;
+			gpu_vertex_b.x = vertex.x;
+			gpu_vertex_b.y = vertex.y;
+			gpu_vertex_b.z = vertex.z;
 			
 			// TODO review this method in mayorana.
 			// finding the vertex by uv only, if not found, then we fill the rest of the data.
 			u32 *found_idx = (u32*)hash_map_find(&vertex_to_index_map, &gpu_vertex_b, sizeof(gpu_vertex_t));
 			if(!found_idx)
 			{
-				vec3_t vertex = asset->verteces[face->b];
-				gpu_vertex_b.x = vertex.x;
-				gpu_vertex_b.y = vertex.y;
-				gpu_vertex_b.x = vertex.z;
 				gpu_vertex_b.r = 1;
 				gpu_vertex_b.g = 1;
 				gpu_vertex_b.b = 1;
@@ -381,7 +395,13 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 				temp_verteces[unique_verteces] = gpu_vertex_b;
 				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_b, unique_verteces);
 				
+				index_buffer[indexes_num++] = unique_verteces;
+				
 				unique_verteces++;
+			}
+			else
+			{
+				index_buffer[indexes_num++] = *found_idx;
 			}
 			
 		}
@@ -389,19 +409,19 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 		
 		{
 			// VERTEX A
+				vec3_t vertex = asset->verteces[face->c];			
 			gpu_vertex_t gpu_vertex_c = { };
 			gpu_vertex_c.u = face->c_uv.u;
 			gpu_vertex_c.v = face->c_uv.v;
+			gpu_vertex_c.x = vertex.x;
+			gpu_vertex_c.y = vertex.y;
+			gpu_vertex_c.z = vertex.z;
 			
 			// TODO review this method in mayorana.
 			// finding the vertex by uv only, if not found, then we fill the rest of the data.
 			u32 *found_idx = (u32*)hash_map_find(&vertex_to_index_map, &gpu_vertex_c, sizeof(gpu_vertex_t));
 			if(!found_idx)
 			{
-				vec3_t vertex = asset->verteces[face->c];
-				gpu_vertex_c.x = vertex.x;
-				gpu_vertex_c.y = vertex.y;
-				gpu_vertex_c.x = vertex.z;
 				gpu_vertex_c.r = 1;
 				gpu_vertex_c.g = 1;
 				gpu_vertex_c.b = 1;
@@ -411,7 +431,13 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 				temp_verteces[unique_verteces] = gpu_vertex_c;
 				HASH_MAP_ADD(vertex_to_index_map, gpu_vertex_t, u32, gpu_vertex_c, unique_verteces);
 				
+				index_buffer[indexes_num++] = unique_verteces;
+				
 				unique_verteces++;
+			}
+			else
+			{
+				index_buffer[indexes_num++] = *found_idx;
 			}
 			
 		}
@@ -431,24 +457,21 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	r->device->CreateBuffer(&vb_desc, &vb_data, &result.vertex_buffer);
 	
 	
-	// Build index buffer from faces
-	
-	u32 vertex_count = asset->face_num * 3;	
+	// Build index buffer from faces	
 	
 	D3D11_BUFFER_DESC ib_desc = {};
 	ib_desc.Usage = D3D11_USAGE_DEFAULT;
-	ib_desc.ByteWidth = vertex_count * sizeof(u32);
+	ib_desc.ByteWidth = indexes_num * sizeof(u32);
 	ib_desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 	
 	
 	D3D11_SUBRESOURCE_DATA ib_data = {};
-	ib_data.pSysMem = temp_indeces;
-	
-	
-	u32 *indeces = 
+	ib_data.pSysMem = index_buffer;
+		
 	r->device->CreateBuffer(&ib_desc, &ib_data, &result.index_buffer);
 	
 	result.vertex_count = unique_verteces;
+	result.indexes_count = indexes_num;
 	
 	upng_t *png= upng_new_from_file(&g_memory.permanent, _texture_name);
 	if(png)
@@ -519,7 +542,7 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f3
 	
 	// Bind geometry
     renderer->context->IASetVertexBuffers(0, 1, &mesh->vertex_buffer, &stride, &offset);
-    //renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
+    renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 	
     // Build world matrix from transform
     f32 world_matrix[16];
@@ -556,8 +579,7 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f3
 	renderer->context->PSSetSamplers(0, 1, &renderer->sampler);
 	
     // Draw
-	renderer->context->IASetIndexBuffer(0, DXGI_FORMAT_UNKNOWN, 0);
-	renderer->context->Draw(mesh->vertex_count, 0);
+	renderer->context->DrawIndexed(mesh->indexes_count, 0, 0);
 }
 
 internal_f void
@@ -605,7 +627,7 @@ RenderMeshes(renderer_t *renderer)
                  g_engine_camera.up);
 	
 	//TODO: get from the main window
-    float aspect = 800.0f / 600.0f;
+    float aspect = (f32)g_engine->main_window.width / (f32)g_engine->main_window.height;
     Mat4PerspectiveLH(proj,
                       g_engine_camera.fov,
                       aspect,
