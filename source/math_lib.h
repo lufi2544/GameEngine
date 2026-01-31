@@ -12,8 +12,7 @@ struct transform_t
 {
 	vec3_t position;
 	vec3_t rotation;
-	vec3_t scale;
-	
+	vec3_t scale;	
 };
 
 internal_f vec3_t
@@ -46,35 +45,6 @@ Vec3Normalize(vec3_t v)
 }
 
 
-internal_f void
-Mat4LookAtLH(float* m, vec3_t eye, vec3_t at, vec3_t up)
-{
-    vec3_t zaxis = Vec3Normalize(Vec3Sub(at, eye));   // forward
-    vec3_t xaxis = Vec3Normalize(Vec3Cross(up, zaxis));
-    vec3_t yaxis = Vec3Cross(zaxis, xaxis);
-	
-    m[0]  = xaxis.x;
-    m[1]  = xaxis.y;
-    m[2]  = xaxis.z;
-    m[3]  = 0;
-	
-    m[4]  = yaxis.x;
-    m[5]  = yaxis.y;
-    m[6]  = yaxis.z;
-    m[7]  = 0;
-	
-    m[8]  = zaxis.x;
-    m[9]  = zaxis.y;
-    m[10] = zaxis.z;
-    m[11] = 0;
-	
-    m[12] = -Vec3Dot(xaxis, eye);
-    m[13] = -Vec3Dot(yaxis, eye);
-    m[14] = -Vec3Dot(zaxis, eye);
-    m[15] = 1;
-}
-
-
 ////////////////////
 /// Matrix 
 ///////////////////
@@ -90,136 +60,177 @@ Mat4LookAtLH(float* m, vec3_t eye, vec3_t at, vec3_t up)
  * Vertex * Scale * Rotation * Translation * Proj * View -> this is a more "common" equation way. 
  * 
 */
+
+struct mat4_t;
+
 internal_f void
-Mat4Identity(f32 *m)
+Mat4Identity(mat4_t *m);
+
+struct mat4_t
 {
-	bytes_set(m, 0, sizeof(float) * 16);
-    m[0]  = 1.0f;
-    m[5]  = 1.0f;
-    m[10] = 1.0f;
-    m[15] = 1.0f;
+	mat4_t()
+	{
+		Mat4Identity(this);
+	}	
+	
+	f32 d[16];
+};
+
+mat4_t Mat4Identity()
+{
+	mat4_t m = {};
+    m.d[0]  = 1.0f;
+    m.d[5]  = 1.0f;
+    m.d[10] = 1.0f;
+    m.d[15] = 1.0f;
+	
+    return m;
 }
 
 internal_f void
-Mat4Mul(float* out, const float* a, const float* b)
+Mat4Identity(mat4_t *m)
 {
-    float r[16];
+	bytes_set(m->d, 0, sizeof(float) * 16);
 	
-    for(int col = 0; col < 4; ++col)
+    m->d[0]  = 1.0f;
+    m->d[5]  = 1.0f;
+    m->d[10] = 1.0f;
+    m->d[15] = 1.0f;
+}
+
+
+internal_f void
+Mat4Mul(mat4_t* out, const mat4_t* a, const mat4_t* b)
+{	
+    for (int col = 0; col < 4; ++col)
     {
-        for(int row = 0; row < 4; ++row)
+        for (int row = 0; row < 4; ++row)
         {
-            r[row + col*4] =
-                a[row + 0*4] * b[0 + col*4] +
-                a[row + 1*4] * b[1 + col*4] +
-                a[row + 2*4] * b[2 + col*4] +
-                a[row + 3*4] * b[3 + col*4];
+            out->d[row + col*4] =
+                a->d[row + 0*4] * b->d[0 + col*4] +
+                a->d[row + 1*4] * b->d[1 + col*4] +
+                a->d[row + 2*4] * b->d[2 + col*4] +
+                a->d[row + 3*4] * b->d[3 + col*4];
         }
-    }
-	
-    bytes_copy(out, r, sizeof(r));
+    }	
 }
 
+
 internal_f void
-Mat4PerspectiveLH(float* m, float fovY, float aspect, float zn, float zf)
+Mat4PerspectiveLH(mat4_t* m, float fovY, float aspect, float zn, float zf)
 {
     float yScale = 1.0f / tanf(fovY * 0.5f);
-    float xScale = yScale / aspect;
+    float xScale = yScale / aspect;		
 	
-    bytes_set(m, 0, sizeof(float) * 16);
+    m->d[0]  = xScale;
+    m->d[5]  = yScale;
+    m->d[10] = zf / (zf - zn);
+    m->d[11] = 1.0f;
+    m->d[14] = -zn * zf / (zf - zn);
+}
+
+
+internal_f void
+Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
+{
+    vec3_t zaxis = Vec3Normalize(Vec3Sub(at, eye));
+    vec3_t xaxis = Vec3Normalize(Vec3Cross(up, zaxis));
+    vec3_t yaxis = Vec3Cross(zaxis, xaxis);
 	
-    m[0]  = xScale;
-    m[5]  = yScale;
-    m[10] = zf / (zf - zn);
-    m[11] = 1.0f;
-    m[14] = -zn * zf / (zf - zn);
+    Mat4Identity(out);
+	
+    out->d[0]  = xaxis.x;
+    out->d[1]  = xaxis.y;
+    out->d[2]  = xaxis.z;
+	
+    out->d[4]  = yaxis.x;
+    out->d[5]  = yaxis.y;
+    out->d[6]  = yaxis.z;
+	
+    out->d[8]  = zaxis.x;
+    out->d[9]  = zaxis.y;
+    out->d[10] = zaxis.z;
+	
+    out->d[12] = -Vec3Dot(xaxis, eye);
+    out->d[13] = -Vec3Dot(yaxis, eye);
+    out->d[14] = -Vec3Dot(zaxis, eye);
 }
 
 internal_f void
-Mat4RotationX(float* m, float angle)
-{
-    Mat4Identity(m);
-	
+Mat4RotationX(mat4_t *m, float angle)
+{	
     float c = cosf(angle);
     float s = sinf(angle);
 	
-    m[5]  = c;
-    m[6]  = s;
-    m[9]  = -s;
-    m[10] = c;
+    m->d[5]  = c;
+    m->d[6]  = s;
+    m->d[9]  = -s;
+    m->d[10] = c;
 }
 
 internal_f void
-Mat4RotationY(float* m, float angle)
-{
-    Mat4Identity(m);
-	
+Mat4RotationY(mat4_t *m, float angle)
+{	
     float c = cosf(angle);
     float s = sinf(angle);
 	
-    m[0]  = c;
-    m[2]  = -s;
-    m[8]  = s;
-    m[10] = c;
+    m->d[0]  = c;
+    m->d[2]  = -s;
+    m->d[8]  = s;
+    m->d[10] = c;
 }
 
 internal_f void
-Mat4RotationZ(float* m, float angle)
-{
-    Mat4Identity(m);
-	
+Mat4RotationZ(mat4_t* m, float angle)
+{	
     float c = cosf(angle);
     float s = sinf(angle);
 	
-    m[0] = c;
-    m[1] = s;
-    m[4] = -s;
-    m[5] = c;
+    m->d[0] = c;
+    m->d[1] = s;
+    m->d[4] = -s;
+    m->d[5] = c;
+}
+
+
+internal_f void
+Mat4Scale(mat4_t* out, vec3_t s)
+{
+    Mat4Identity(out);
+    out->d[0]  = s.x;
+    out->d[5]  = s.y;
+    out->d[10] = s.z;
 }
 
 internal_f void
-TransformToMatrix(float* out, transform_t t)
+Mat4Translation(mat4_t* out, vec3_t p)
 {
-    float T[16];
-    float S[16];
-    float Rx[16];
-    float Ry[16];
-    float Rz[16];
+    out->d[12] = p.x;
+    out->d[13] = p.y;
+    out->d[14] = p.z;
+}
+
+internal_f void
+TransformToMatrix(mat4_t* out, transform_t t)
+{
+    mat4_t T, S, Rx, Ry, Rz;
+    mat4_t Ryx, Rzyx;
+    mat4_t RS;
 	
-    float Ryx[16];
-    float Rzyx[16];
+    Mat4Translation(&T, t.position);
+    Mat4Scale(&S, t.scale);
 	
-    float RS[16];
-    float TRS[16];
+    Mat4RotationX(&Rx, t.rotation.x);
+    Mat4RotationY(&Ry, t.rotation.y);
+    Mat4RotationZ(&Rz, t.rotation.z);
 	
-    // Identity
-    Mat4Identity(T);
-    Mat4Identity(S);
-	
-    // Translation (column-major)
-    T[12] = t.position.x;
-    T[13] = t.position.y;
-    T[14] = t.position.z;
-	
-    // Scale
-    S[0]  = t.scale.x;
-    S[5]  = t.scale.y;
-    S[10] = t.scale.z;
-	
-    // Rotation matrices
-    Mat4RotationX(Rx, t.rotation.x);
-    Mat4RotationY(Ry, t.rotation.y);
-    Mat4RotationZ(Rz, t.rotation.z);
-	
-    // Combine rotations: R = Rz * Ry * Rx (common convention)
-    Mat4Mul(Ryx, Ry, Rx);
-    Mat4Mul(Rzyx, Rz, Ryx);
+    // R = Rz * Ry * Rx
+    Mat4Mul(&Ryx, &Ry, &Rx);
+    Mat4Mul(&Rzyx, &Rz, &Ryx);
 	
     // RS = R * S
-    Mat4Mul(RS, Rzyx, S);
+    Mat4Mul(&RS, &Rzyx, &S);
 	
     // TRS = T * R * S
-    Mat4Mul(TRS, T, RS);
-	
-    bytes_copy(out, TRS, sizeof(float) * 16);
+    Mat4Mul(out, &T, &RS);
 }

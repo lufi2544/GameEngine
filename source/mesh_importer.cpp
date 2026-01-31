@@ -506,6 +506,8 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, const char *_file_name, co
 		return 0;
 	}
 	
+	result.path = STRING_V(&engine_data->memory->permanent, _file_name);
+	
 	S_SCRATCH(engine_data->memory);
 	
 	buffer_t buffer = read_file(temp_arena, _file_name);

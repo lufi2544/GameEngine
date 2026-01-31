@@ -44,4 +44,5 @@ struct mesh_t
 	u32 texture_id;
 	
 	transform_t transform;
+	string_t path;
 };

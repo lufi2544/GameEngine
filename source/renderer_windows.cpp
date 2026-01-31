@@ -473,6 +473,10 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	result.vertex_count = unique_verteces;
 	result.indexes_count = indexes_num;
 	
+	
+	printf("verteces: %i, indexes: %i\n", unique_verteces, indexes_num);
+
+	
 	upng_t *png= upng_new_from_file(&g_memory.permanent, _texture_name);
 	if(png)
 	{
@@ -535,7 +539,7 @@ SetDebugColor(renderer_t* renderer, f32 r, f32 g, f32 b, f32 a, int use)
 }
 
 internal_f void
-RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f32* projTview)
+RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, mat4_t* projTview)
 {
 	UINT stride = sizeof(gpu_vertex_t);
 	UINT offset = 0;
@@ -545,18 +549,14 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f3
     renderer->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R32_UINT, 0);
 	
     // Build world matrix from transform
-    f32 world_matrix[16];
-    f32 vp[16];
-    f32 mvp[16];
-	
-    Mat4Identity(world_matrix);
-	
+    mat4_t world_matrix, vp, mvp;
+		
 	// Getting the transform matrix from local space to world space - 
 	// (Column major) World = Transform * Rotation * Scale
-    TransformToMatrix(world_matrix, *transform);
+    TransformToMatrix(&world_matrix, *transform);
 	
     //(Column major) world_matrix(mvp) = (proj * view * world)
-    Mat4Mul(mvp, projTview, world_matrix);
+    Mat4Mul(&mvp, projTview, &world_matrix);
 	
 	//////////////////////
 	/// Whenever we use the Map function, we basically get the GPU memory and do stuff with it, in this case we are passing the 
@@ -568,7 +568,7 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, f3
     renderer->context->Map(renderer->cb_mvp, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
 	
     constant_buffer_mvp* cb = (constant_buffer_mvp*)mapped.pData;
-    bytes_copy(cb->mvp, mvp, sizeof(mvp));
+    bytes_copy(cb->mvp, mvp.d, sizeof(mvp.d));
 	
     renderer->context->Unmap(renderer->cb_mvp, 0);
 	
@@ -618,17 +618,16 @@ EndFrame(renderer_t *_renderer)
 internal_f void
 RenderMeshes(renderer_t *renderer)
 {
-	float view[16];
-    float proj[16];
+	mat4_t view, proj;
 	
-	Mat4LookAtLH(view,
+	Mat4LookAtLH(&view,
                  g_engine_camera.position,
                  g_engine_camera.target,
                  g_engine_camera.up);
 	
 	//TODO: get from the main window
     float aspect = (f32)g_engine->main_window.width / (f32)g_engine->main_window.height;
-    Mat4PerspectiveLH(proj,
+    Mat4PerspectiveLH(&proj,
                       g_engine_camera.fov,
                       aspect,
                       g_engine_camera.near_z,
@@ -653,15 +652,15 @@ RenderMeshes(renderer_t *renderer)
 		renderer->context->OMSetDepthStencilState(nullptr, 0);
 		SetDebugColor(renderer, 0, 0, 0, 0, 0); // use vertex color
 		
-		f32 projTview [16];
-		Mat4Mul(projTview, proj, view);
-		RenderGPUMesh(renderer, mesh, &transform, projTview);
+		mat4_t projTview;
+		Mat4Mul(&projTview, &proj, &view);
+		RenderGPUMesh(renderer, mesh, &transform, &projTview);
 		
 		// WIREFRAME PASS
 		renderer->context->RSSetState(renderer->rs_wireframe);
 		renderer->context->OMSetDepthStencilState(renderer->ds_wireframe_overlay, 0);
 		SetDebugColor(renderer, 0, 0, 0, 1, 1); // white 
-		RenderGPUMesh(renderer, mesh, &transform, projTview);
+		RenderGPUMesh(renderer, mesh, &transform, &projTview);
 		
 		renderer->context->OMSetDepthStencilState(nullptr, 0);
 		
