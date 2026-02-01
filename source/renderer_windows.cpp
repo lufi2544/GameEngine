@@ -509,7 +509,6 @@ RendererComputeImportedMesh(engine_shared_data_t *engine_data, mesh_t *_mesh, co
 	LIST_ADD(&engine_data->memory->permanent, renderer->gpu_meshes, gpu_mesh, gpu_mesh_t);		
 }
 
-
 internal_f void
 SetDebugColor(renderer_t* renderer, f32 r, f32 g, f32 b, f32 a, int use)
 {
@@ -609,17 +608,17 @@ RenderMeshes(renderer_t *renderer)
 	mat4_t view, proj;
 	
 	Mat4LookAtLH(&view,
-                 g_engine_camera.position,
-                 g_engine_camera.target,
-                 g_engine_camera.up);
+                 g_engine_camera->position,
+                 g_engine_camera->target,
+                 g_engine_camera->up);
 	
 	//TODO: get from the main window
     float aspect = (f32)g_engine->main_window.width / (f32)g_engine->main_window.height;
     Mat4PerspectiveLH(&proj,
-                      g_engine_camera.fov,
+                      g_engine_camera->fov,
                       aspect,
-                      g_engine_camera.near_z,
-                      g_engine_camera.far_z);
+                      g_engine_camera->near_z,
+                      g_engine_camera->far_z);
 	
 	// we will just render the list in this case.For now this is what I have, is not cache friendly neither optimal, but is fine for now.	
 	gpu_mesh_t *mesh = 0;
