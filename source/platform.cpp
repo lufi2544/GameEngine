@@ -5,6 +5,6 @@
 #endif // _WINDOWS
 
 
-#ifdef _MACOS
-
+#ifdef _APPLE
+#include "platform_macos.mm"
 #endif // _MACOS

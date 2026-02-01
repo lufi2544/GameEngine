@@ -10,9 +10,12 @@ TESTS_DIR="$THIS_DIR/tests"
 BIN_DIR="$THIS_DIR/bin"
 BUILD_DIR="$THIS_DIR/build"
 
-MAIN_FILE="$SRC_DIR/win32_main.cpp"   # rename later if you want
+MAIN_FILE="$SRC_DIR/macos_main.mm"   # rename later if you want
 MAYORANA_DIR="$SRC_DIR/MayoranaFramework/source"
 MAYORANA_REF="$SRC_DIR/mayorana-reflection/source"
+FRAMEWORKS=(
+	-framework Cocoa
+)
 
 BINARY_NAME="engine"
 FLAGS="MAYORANA"
@@ -39,6 +42,7 @@ $CXX \
     "${CXXFLAGS}" \
     "${INCLUDES[@]}" \
     -D$FLAGS \
+	"${FRAMEWORKS[@]}"\
     "$MAIN_FILE" \
     -o "$BINARY_NAME"
 

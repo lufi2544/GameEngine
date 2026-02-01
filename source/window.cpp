@@ -102,4 +102,7 @@ window_t CreateAWindow(u32 x, u32 y, u32 h, u32 w)
 #endif //_WINDOW
 
 
+#ifdef _APPLE
+#include "window_macos.mm"
 
+#endif // _APPLE

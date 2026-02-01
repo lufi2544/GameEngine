@@ -13,6 +13,11 @@ struct window_t
 	HWND handle;
 #endif // _WINDOWS
 	
+    
+#ifdef _APPLE
+    void* handle;
+    
+#endif // _APPLE
 	u32 x;
 	u32 y;
 	u32 width;
