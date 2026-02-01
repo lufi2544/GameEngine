@@ -15,6 +15,8 @@ MAYORANA_DIR="$SRC_DIR/MayoranaFramework/source"
 MAYORANA_REF="$SRC_DIR/mayorana-reflection/source"
 FRAMEWORKS=(
 	-framework Cocoa
+	-framework Metal
+	-framework QuartzCore
 )
 
 BINARY_NAME="engine"

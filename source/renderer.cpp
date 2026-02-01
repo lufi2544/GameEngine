@@ -6,5 +6,5 @@
 
 
 #ifdef _APPLE
-#include "renderer_macos.cpp"
+#include "renderer_macos.mm"
 #endif // _APPLE
