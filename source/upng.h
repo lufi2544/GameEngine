@@ -1262,15 +1262,16 @@ upng_new_from_file(arena_t *_arena, const char *filename)
 /*
 void upng_free(upng_t* upng)
 {
-	/* deallocate image buffer 
+	 deallocate image buffer 
 	if (upng->buffer != NULL) {
 		free(upng->buffer);
 	}
 	
-	/* deallocate source buffer, if necessary 
+	 deallocate source buffer, if necessary 
 	upng_free_source(upng);
 	
-	/* deallocate struct itself 
+	
+deallocate struct itself 
 	free(upng);
 }
 */
