@@ -511,6 +511,7 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, const char *_file_name, co
 	S_SCRATCH(engine_data->memory);
 	
 	buffer_t buffer = read_file(temp_arena, _file_name);
+    if (buffer.size == 0){ return 0; }
 	if (buffer.size > 0)
 	{
 		printf("Importing mesh %s \n", _file_name);
@@ -610,7 +611,7 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, const char *_file_name, co
 		assert(current_vertex == result.vertex_num);	
 		assert(current_uv == result.uv_coords_num);
 	}
-					
+    
 	engine_data->meshes[engine_data->mesh_num] = result;
 	mesh_t *imported = &engine_data->meshes[engine_data->mesh_num++];
 	
