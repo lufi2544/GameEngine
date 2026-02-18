@@ -4,6 +4,8 @@
 /// Main Input file for the engine 
 ///////////////////////////////////
 
+#define INPUT_DEBUG 1
+
 enum InputKey : u8
 {
     InputKey_None = 0,
@@ -71,7 +73,6 @@ enum InputKey : u8
 
 global bool g_input[InputKey_Num - 1];
 
-
 global_f bool
 IsKeyPressed(u8 key)
 {
@@ -81,11 +82,23 @@ IsKeyPressed(u8 key)
 }
 
 global_f void
-SetKeyState(u8 key, bool is_pressed)
+SetKeyState(u8 key, bool b_is_pressed)
 {
 	assert(key <= ArrayCount(g_input));		
 		
-	g_input[key] = is_pressed;
+	g_input[key] = b_is_pressed;
+	
+#if INPUT_DEBUG		
+	if(b_is_pressed)
+	{
+		MAYORANA_LOG("Input %u presses", key);
+	}
+	else
+	{
+		MAYORANA_LOG("Input %u release", key);
+	}
+#endif // INPUT_DEBUG
+	
 }
 
 

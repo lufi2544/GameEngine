@@ -627,12 +627,7 @@ RenderMeshes(renderer_t *renderer)
 	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
 	{
 		transform_t transform = mesh->asset->transform;
-		u32 mesh_flags = mesh->asset->flags;
-		
-		static float angle = 0.0f;
-		angle += 0.01f;
-		
-		transform.rotation = {0, angle, 0};
+		u32 mesh_flags = mesh->asset->flags;	
 		
 		// SOLID PASS
 		renderer->context->RSSetState(renderer->rs_solid);

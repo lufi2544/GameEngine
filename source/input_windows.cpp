@@ -1,9 +1,7 @@
 
+
 /////////////////////
 //// WINDOWS INPUT HANDLING
-
-#define INPUT_DEBUG 1
-
 internal_f u8 
 TranslateWindowsInputKey(WPARAM windows_key)
 {
@@ -42,27 +40,17 @@ TranslateWindowsInputKey(WPARAM windows_key)
 }
 
 internal_f void
-ProcessWindowsInputKey(WPARAM windows_key, bool is_pressed)
+ProcessWindowsInputKey(WPARAM windows_key, bool b_is_pressed)
 {
 	// This is our engine key
 	u8 input_key = TranslateWindowsInputKey(windows_key);	
 	bool b_current_state = IsKeyPressed(input_key);
 	
-	if(b_current_state != is_pressed)
+	if(b_current_state != b_is_pressed)
 	{
-		SetKeyState(input_key, is_pressed);		
+		SetKeyState(input_key, b_is_pressed);		
 		
 		// TODO Adding the translation to enum, maybe the reflection can handle this.
-#if INPUT_DEBUG		
-		if(is_pressed)
-		{
-			MAYORANA_LOG("Input %u presses", input_key);
-		}
-		else
-		{
-			MAYORANA_LOG("Input %u release", input_key);
-		}
-#endif // INPUT_DEBUG
 		
 	}
 	

@@ -11,3 +11,4 @@ global camera_t* g_engine_camera;
 
 
 #define MAX_MESH_COUNT 10
+#define MAX_FPS 60

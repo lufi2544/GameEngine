@@ -5,6 +5,7 @@
 #include "globals.h"
 
 /// PLATFORM
+#include "platform.h"
 
 #include "window.h"
 #include "math_lib.h"
@@ -15,4 +16,3 @@
 #include "application.h"
 
 #include "renderer.h"
-#include "platform.h"

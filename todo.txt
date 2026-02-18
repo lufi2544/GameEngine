@@ -1,15 +1,13 @@
 //////////
 /// Engine project
 
+- Create the enum reflection in mayorana-reflection.
+- Create handle for objects to not carry ptrs?
 
 ////////////////
 //// DAY
 ///////////////
 
-- correct the mesh import pipeline for having a default scale, transform and rotation.
-- Finishing to add the vertex buffer and index buffer for the unique mesh verteces.
-
-- Create the input.
 - Crate the camera free movement, through the mouse.
 - Create the infinite scenario.
 

@@ -7,7 +7,7 @@ ApplicationInit(engine_shared_data_t *engine_data);
 
 
 global_f void
-ApplicationUdpate(engine_shared_data_t *engine_data);
+ApplicationUpdate(engine_shared_data_t *engine_data, f32 dt);
 
 
 

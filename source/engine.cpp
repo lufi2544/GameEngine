@@ -33,9 +33,9 @@ EngineInit()
 
 
 global_f void
-EngineUpdate()
+EngineUpdate(f32 dt)
 {
-	
+	ApplicationUpdate(&g_engine->shared_data, (f32)(dt / 1000.0f) );
 }
 
 global_f void 
@@ -62,13 +62,31 @@ global_f u32
 EngineRun()
 {
 	EngineInit();
+	
+	
+	f32 dt = 33.33f;
+	f32 target_fps = MAX_FPS;
+	f32 target_ms_frame = (f32)(1/target_fps) * 1000.0f;
 	while(g_engine->is_running)
-	{	
+	{		
+		f64 frame_begin = PlatformNow();
+		
 		PlatformUpdate();
 		
 		EngineInput();
-		EngineUpdate();
+		EngineUpdate(dt);
 		EngineRender();
+		f64 frame_end = PlatformNow();
+		
+		f64 frame_time = frame_end - frame_begin;
+		
+		if(frame_time < target_ms_frame)
+		{
+			PlatformSleep(target_ms_frame - frame_time);
+			frame_end = PlatformNow();
+		}
+		
+		dt = frame_end - frame_begin;
 	}
 	
 	EngineShutDown();

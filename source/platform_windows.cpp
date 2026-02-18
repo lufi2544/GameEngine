@@ -1,7 +1,7 @@
 /* date = January 22nd 2026 7:53 pm */
 
-
-/////////// Unique Windows platform handling
+/////////////////////
+//// WINDOWS PLATFORM UPDATE
 
 /** For windows this is the messate handling */
 global_f void
@@ -46,5 +46,18 @@ until we have no more messages in the message queue.
 }
 
 
+global_f f64
+PlatformNow()
+{
+	f32 result;
+	DWORD time_since_start = GetTickCount();
+	result = time_since_start;
+	return result;
+}
 
 
+global_f void
+PlatformSleep(f64 sleep_for_ms)
+{
+	Sleep(sleep_for_ms);
+}

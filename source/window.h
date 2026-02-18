@@ -1,10 +1,5 @@
 /* date = January 21st 2026 3:55 pm */
-
-#ifdef _WINDOWS
-#include "Windows.h"
-#endif // WINDOWS
 // Create a window and display it.
-
 
 struct window_t
 {
