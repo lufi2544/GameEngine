@@ -51,6 +51,12 @@ EngineShutDown()
 	
 }
 
+global_f void
+EngineInput()
+{
+	HandleInput();
+}
+
 
 global_f u32 
 EngineRun()
@@ -60,6 +66,7 @@ EngineRun()
 	{	
 		PlatformUpdate();
 		
+		EngineInput();
 		EngineUpdate();
 		EngineRender();
 	}

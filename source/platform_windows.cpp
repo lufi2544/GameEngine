@@ -23,6 +23,20 @@ until we have no more messages in the message queue.
 				g_engine->is_running = false;
 				return;
 			};
+			
+			case WM_KEYDOWN:
+			{
+				WPARAM wParam = msg.wParam;
+				ProcessWindowsInputKey(wParam, true);
+				break;
+			}
+			
+			case WM_KEYUP:
+			{
+				WPARAM wParam = msg.wParam;
+				ProcessWindowsInputKey(wParam, false);
+				break;
+			}
 			default:;
 		}
 		
@@ -30,3 +44,7 @@ until we have no more messages in the message queue.
 		DispatchMessage(&msg);	
 	}	
 }
+
+
+
+
