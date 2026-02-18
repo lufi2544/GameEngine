@@ -3,6 +3,15 @@
 
 // TODO: Add the mesh list to the engie_shared_data.
 
+enum enum_renderer_flags : u32
+{
+	RendererFlag_None,
+	RendererFlag_WireFrame, 
+				
+	RendererFlag_Num
+};
+
+
 global_f bool
 RendererInit();
 

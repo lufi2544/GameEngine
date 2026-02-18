@@ -1,11 +1,12 @@
 /* date = January 22nd 2026 6:30 pm */
 
 #include "engine_shared_data.h"
-#include "mesh.h"
 
+#include "core.h"
 #include "camera.h"
+
+#include "mesh.h"
 #include "asset_manager.h"
-#include "file_reader.h"
 
 ////////// Main Engine API //////////
 

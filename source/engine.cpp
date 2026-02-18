@@ -17,7 +17,7 @@ EngineInit()
 	
 	
 	// TODO Maybe application layer and move this to the engine shared data layer
-	g_engine_camera->position = {0, 0, -2};
+	g_engine_camera->position = {0, 0, -1};
 	g_engine_camera->target = {0, 0, 0};
 	g_engine_camera->up = {0, 1, 0};
 	g_engine_camera->fov = 60.0f * PI / 180.0f;

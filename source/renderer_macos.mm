@@ -160,7 +160,8 @@ bool Metal_Init() {
     return (g_renderer.pipeline != nil);
 }
 
-void RenderMeshes() {
+void RenderMeshes() 
+{
     id<CAMetalDrawable> drawable = [g_renderer.metal_layer nextDrawable];
     if(!drawable) return;
     

@@ -43,6 +43,9 @@ struct mesh_t
 	u32 uv_coords_num;
 	u32 texture_id;
 	
+	
 	transform_t transform;
 	string_t path;
+	
+	u32 flags;	
 };

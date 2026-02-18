@@ -20,14 +20,15 @@ struct vertex_t
 
 struct gpu_mesh_t
 {
+	mesh_t *asset;
 	ID3D11Buffer* vertex_buffer;
-	ID3D11Buffer* index_buffer;
+	ID3D11Buffer* index_buffer;	
 	
 	// TODO: this is the texture, should be here?
 	ID3D11ShaderResourceView *texture_srv;
 	
 	u32 vertex_count;	
-	u32 indexes_count;
+	u32 indexes_count;	
 };
 
 global gpu_mesh_t g_test_gpu_mesh;
@@ -307,6 +308,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	
 	u32 asset_max_verteces = asset->face_num * 3;
 	gpu_mesh_t result = {};		
+	result.asset = asset;
 	hash_map_t vertex_to_index_map /*gpu_vertex - u32*/ = HASH_MAP(temp_arena, asset_max_verteces, gpu_vertex_t, u32, hash_function_gpu_vertex);
 	
 	// Crating a buffer with the max verteces as the faces * 3, if none of the of the verteces are shared.
@@ -624,10 +626,8 @@ RenderMeshes(renderer_t *renderer)
 	gpu_mesh_t *mesh = 0;
 	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
 	{
-		transform_t transform = {};
-		// TODO: we would need to handle some way the transform from this, from cpu to gpu.
-		transform.position = {0, 0, 0};
-		transform.scale = {1, 1, 1};
+		transform_t transform = mesh->asset->transform;
+		u32 mesh_flags = mesh->asset->flags;
 		
 		static float angle = 0.0f;
 		angle += 0.01f;
@@ -644,10 +644,15 @@ RenderMeshes(renderer_t *renderer)
 		RenderGPUMesh(renderer, mesh, &transform, &projTview);
 		
 		// WIREFRAME PASS
-		renderer->context->RSSetState(renderer->rs_wireframe);
-		renderer->context->OMSetDepthStencilState(renderer->ds_wireframe_overlay, 0);
-		SetDebugColor(renderer, 0, 0, 0, 1, 1); // white 
-		RenderGPUMesh(renderer, mesh, &transform, &projTview);
+		
+		if(HasFlag(mesh_flags, RendererFlag_WireFrame))
+		{
+			renderer->context->RSSetState(renderer->rs_wireframe);
+			renderer->context->OMSetDepthStencilState(renderer->ds_wireframe_overlay, 0);
+			SetDebugColor(renderer, 0, 0, 0, 1, 1); // white 
+			RenderGPUMesh(renderer, mesh, &transform, &projTview);	
+		}
+
 		
 		renderer->context->OMSetDepthStencilState(nullptr, 0);
 		
