@@ -10,5 +10,9 @@ struct camera_t;
 global camera_t* g_engine_camera;
 
 
+struct render_mailbox_t;
+global render_mailbox_t *g_render_mailbox;
+
+
 #define MAX_MESH_COUNT 10
 #define MAX_FPS 60

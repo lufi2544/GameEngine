@@ -61,3 +61,32 @@ PlatformSleep(f64 sleep_for_ms)
 {
 	Sleep(sleep_for_ms);
 }
+
+
+
+struct platform_event_t
+{
+	HANDLE handle;
+};
+
+global_f platform_event_t*
+PlatformEventCreate(arena_t *arena)
+{
+	platform_event_t *result = (platform_event_t*)push_size(arena, sizeof(platform_event_t));
+	result->handle = CreateEvent(NULL, FALSE, FALSE, NULL);
+	
+	return result;
+}
+
+global_f void 
+PlatformEventWait(platform_event_t *event)
+{
+	WaitForSingleObject(event->handle, INFINITE);
+}
+
+
+global_f void
+PlatformEventSignal(platform_event_t *event)
+{
+	SetEvent(event->handle);
+}

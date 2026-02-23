@@ -1,7 +1,8 @@
 //////////
 /// Engine project
 
-- Create the enum reflection in mayorana-reflection.
+- Create the render thread handling.
+- Create the Texture Manager.
 - Create handle for objects to not carry ptrs?
 
 ////////////////

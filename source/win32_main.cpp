@@ -21,7 +21,7 @@ void InitFramework()
 int main(int arg_num, char** args)
 {
 	InitFramework();
-	u32 run_error = EngineRun();
+	u32 run_error = EngineRun(g_engine);
 	
 	return run_error;
 }

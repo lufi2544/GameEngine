@@ -19,3 +19,18 @@ PlatformNow();
 
 global_f void
 PlatformSleep(f64 sleep_for_ms);
+
+///////
+/// Platform Event signal
+
+struct platform_event_t;
+
+global_f platform_event_t*
+PlatformEventCreate(arena_t *arena);
+
+global_f void 
+PlatformEventWait(platform_event_t *event);
+
+
+global_f void
+PlatformEventSignal(platform_event_t *event);

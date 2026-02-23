@@ -1,9 +1,17 @@
 
 global_f void 
-EngineInit()
+EngineInit(engine_t *engine)
 {	
-	g_engine->main_window = CreateAWindow(200, 200, 1080, 1920);
-	g_engine->shared_data.memory = &g_memory;
+	engine->frame_pipeline = (frame_pipeline_t*)push_size(&g_memory.permanent, sizeof(frame_pipeline_t));
+	engine->frame_pipeline->game_index = 0;
+	engine->frame_pipeline->render_index = 0;	
+	engine->frame_pipeline->platform_event = PlatformEventCreate(&g_memory.permanent);
+	
+	g_render_mailbox = (render_mailbox_t*)push_size(&g_memory.permanent, sizeof(render_mailbox_t));	
+	
+	
+	engine->main_window = CreateAWindow(200, 200, 1080, 1920);
+	engine->shared_data.memory = &g_memory;
     g_engine_camera  = (camera_t*)push_size(&g_memory.permanent, sizeof(camera_t));
 	
 	if(RendererInit())
@@ -13,8 +21,7 @@ EngineInit()
 	else
 	{
 		MAYORANA_LOG("Windows: Renderer NOT INITALIZED! ");		
-	}
-	
+	}		
 	
 	// TODO Maybe application layer and move this to the engine shared data layer
 	g_engine_camera->position = {0, 0, -1};
@@ -26,27 +33,25 @@ EngineInit()
 	g_engine_camera->far_z = 100.0f;		
 	
 	// Mesh array init
-	g_engine->shared_data.meshes = (mesh_t*)push_size(&g_memory.permanent, MAX_MESH_COUNT * sizeof(mesh_t));
-	ApplicationInit(&g_engine->shared_data);
+	engine->shared_data.meshes = (mesh_t*)push_size(&g_memory.permanent, MAX_MESH_COUNT * sizeof(mesh_t));
+	ApplicationInit(&engine->shared_data);
 }
-
-
 
 global_f void
-EngineUpdate(f32 dt)
+EngineUpdate(engine_t *engine, f32 dt)
 {
-	ApplicationUpdate(&g_engine->shared_data, (f32)(dt / 1000.0f) );
+	ApplicationUpdate(&engine->shared_data, (f32)(dt / 1000.0f) );
 }
 
 global_f void 
-EngineRender()
+EngineRender(engine_t *engine)
 {
-	RendererUpdate(&g_engine->shared_data);
+	RendererUpdate(&engine->shared_data);
 }
 
 
 global_f void 
-EngineShutDown()
+EngineShutDown(engine_t *engine)
 {
 	
 }
@@ -57,29 +62,81 @@ EngineInput()
 	HandleInput();
 }
 
+volatile u32 engine_frame = 0;
+volatile u32 render_frame = 0;
+
+global_f void 
+RenderThreadLoop(void* data)
+{
+	// The renderer will read from the render_mailbox 
+	while(g_engine->is_running)
+	{		
+		PlatformEventWait(g_engine->frame_pipeline->platform_event); 
+		MemoryBarrier();
+		
+		frame_data_t *read = &g_engine->frame_pipeline->buffers[g_engine->frame_pipeline->render_index];
+		
+		printf("RenderFrame %i \n", read->frame_number);
+		
+		std::this_thread::sleep_for(std::chrono::milliseconds(25));
+		
+		++render_frame;
+		
+		g_engine->frame_pipeline->render_index ^= 1;
+		
+	}
+}
+
+global_f void
+SyncWithRenderThread(frame_pipeline_t *pipeline)
+{	
+	MemoryBarrier();	
+	pipeline->game_index ^= 1;
+	
+	PlatformEventSignal(pipeline->platform_event);
+}
+
+global_f void
+CreateRenderThread(mythread_t *render_thread, engine_t *engine)
+{
+	SCRATCH();
+
+	string_t render_thread_name = STRING_V(temp_arena, "render_thread");	
+	start_thread(render_thread, &engine->shared_data.memory->threads, render_thread_name, RenderThreadLoop, 0);
+}
 
 global_f u32 
-EngineRun()
+EngineRun(engine_t *engine)
 {
-	EngineInit();
+	SCRATCH();
+	
+	EngineInit(engine);		
+		
+	mythread_t render_thread;
+	CreateRenderThread(&render_thread, engine);
 	
 	
 	f32 dt = 33.33f;
 	f32 target_fps = MAX_FPS;
-	f32 target_ms_frame = (f32)(1/target_fps) * 1000.0f;
-	while(g_engine->is_running)
-	{		
-		f64 frame_begin = PlatformNow();
+	f32 target_ms_frame = (f32)(1 / target_fps) * 1000.0f;
 		
+	while(engine->is_running)
+	{
+		frame_data_t* write = &engine->frame_pipeline->buffers[engine->frame_pipeline->game_index];
+		write->frame_number = ++engine_frame;
+		
+		printf("Engine frame %i \n", write->frame_number);
+		
+		f64 frame_begin = PlatformNow();		
 		PlatformUpdate();
 		
 		EngineInput();
-		EngineUpdate(dt);
-		EngineRender();
+		EngineUpdate(engine, dt);
+		EngineRender(engine);
+		
 		f64 frame_end = PlatformNow();
 		
 		f64 frame_time = frame_end - frame_begin;
-		
 		if(frame_time < target_ms_frame)
 		{
 			PlatformSleep(target_ms_frame - frame_time);
@@ -87,9 +144,15 @@ EngineRun()
 		}
 		
 		dt = frame_end - frame_begin;
+		
+		
+		SyncWithRenderThread(engine->frame_pipeline);
 	}
 	
-	EngineShutDown();
+	EngineShutDown(engine);	
+	
+	// TODO scope the render thread somewhere else.
+	end_thread(&render_thread, true);
 	
 	return 0;
 }

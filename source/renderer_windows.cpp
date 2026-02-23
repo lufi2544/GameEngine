@@ -467,6 +467,7 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	printf("verteces: %i, indexes: %i\n", unique_verteces, indexes_num);
     
 	
+	// TODO 
 	upng_t *png= upng_new_from_file(&g_memory.permanent, _texture_name);
 	if(png)
 	{
@@ -627,7 +628,7 @@ RenderMeshes(renderer_t *renderer)
 	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
 	{
 		transform_t transform = mesh->asset->transform;
-		u32 mesh_flags = mesh->asset->flags;	
+		u32 mesh_flags = mesh->asset->flags;
 		
 		// SOLID PASS
 		renderer->context->RSSetState(renderer->rs_solid);

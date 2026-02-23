@@ -1,6 +1,10 @@
 /* date = January 23rd 2026 4:35 pm */
 
 
+#include "scene_proxy.h"
+#include "render_command.h"
+#include "frame_data.h"
+
 // TODO: Add the mesh list to the engie_shared_data.
 
 enum enum_renderer_flags : u32
