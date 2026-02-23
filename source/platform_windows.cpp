@@ -90,3 +90,10 @@ PlatformEventSignal(platform_event_t *event)
 {
 	SetEvent(event->handle);
 }
+
+
+global_f void
+PlatformMemoryBarrier()
+{
+	MemoryBarrier();
+}

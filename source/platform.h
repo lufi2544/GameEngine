@@ -34,3 +34,7 @@ PlatformEventWait(platform_event_t *event);
 
 global_f void
 PlatformEventSignal(platform_event_t *event);
+
+
+global_f void
+PlatformMemoryBarrier();

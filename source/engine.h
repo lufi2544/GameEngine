@@ -6,6 +6,7 @@
 #include "camera.h"
 
 #include "mesh.h"
+#include "actor.h"
 #include "asset_manager.h"
 
 ////////// Main Engine API //////////

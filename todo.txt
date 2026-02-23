@@ -1,7 +1,9 @@
 //////////
 /// Engine project
 
-- Create the render thread handling.
+- Render thread:
+	- create a command mailbox, which is a function buffer, that async, will be executed on the render thread.
+
 - Create the Texture Manager.
 - Create handle for objects to not carry ptrs?
 

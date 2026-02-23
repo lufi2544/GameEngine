@@ -6,6 +6,7 @@
 
 #define INPUT_DEBUG 1
 
+MY_ENUM()
 enum InputKey : u8
 {
     InputKey_None = 0,

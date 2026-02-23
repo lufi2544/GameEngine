@@ -48,10 +48,7 @@ ProcessWindowsInputKey(WPARAM windows_key, bool b_is_pressed)
 	
 	if(b_current_state != b_is_pressed)
 	{
-		SetKeyState(input_key, b_is_pressed);		
-		
-		// TODO Adding the translation to enum, maybe the reflection can handle this.
-		
+		SetKeyState(input_key, b_is_pressed);						
 	}
 	
 	
