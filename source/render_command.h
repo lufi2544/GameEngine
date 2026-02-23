@@ -28,7 +28,6 @@ struct render_mailbox_t
 	arena_t buffer_memory[RENDER_COMMAND_BUFFER_NUM];
 };
 
-
 struct reserver_t
 {
 	s32 reserved;
@@ -75,9 +74,9 @@ RenderMailBoxIsBufferFree(u32 idx)
 	bool b_has_data = mailbox->command_current[idx] == 0;
 	bool b_is_free = mailbox->free_buffer_flags[idx] == true;
 	
-	bool b_any_ready =  b_has_data && b_is_free;
+	bool b_ready =  b_has_data && b_is_free;
 	
-	return !b_any_ready;
+	return b_ready;
 }
 
 global_f bool 
@@ -85,7 +84,7 @@ RenderMailBoxAsignReserver(reserver_t *reserver)
 {
 	s32 free_idx = -1;
 	
-	for(u8 idx = 0; idx < 2; ++idx)
+	for(u8 idx = 0; idx < RENDER_COMMAND_BUFFER_NUM; ++idx)
 	{
 		
 		bool b_free = RenderMailBoxIsBufferFree(idx);
@@ -126,23 +125,57 @@ RenderMailBoxReturnReserver(reserver_t *reserver)
 }
 
 global_f bool
-RenderMailBoxReadyToBeProcessed(reserver_t *reserver)
-{
-	
+RenderMailBoxGetReadyToProcessReserver(reserver_t *out_reserver)
+{	
 	s32 ready_idx = -1;	
 	bool b_any_ready = false;
-	for(u8 idx = 0; idx < 2; ++idx)
+	render_mailbox_t* mailbox = g_render_mailbox;
+	
+	for(u8 idx = 0; idx < RENDER_COMMAND_BUFFER_NUM; ++idx)
 	{
-		render_mailbox_t* mailbox = g_render_mailbox;
 		bool b_has_data = mailbox->command_current[idx] > 0;
 		bool b_is_free = mailbox->free_buffer_flags[idx] == true;
 		
 		b_any_ready =  b_has_data && b_is_free;
+		if(b_any_ready)
+		{
+			ready_idx = idx;
+			break;
+		}
 	}
 	
-	render_mailbox_t *mailbox =  g_render_mailbox;
+	
+	out_reserver->reserved = ready_idx;
+	
+	return ready_idx != -1;		
+}
+
+/* 
+ * Called by the engine thread to check if it can continue the next frame, since the Render Thread can be still 
+ * processing the last render frame.
+ */
+global_f bool
+RenderMailBoxCheckIfBuffersFull(reserver_t *current)
+{
+	bool b_full = true;
+	render_mailbox_t* mailbox = g_render_mailbox;
+	
+	for(u8 idx = 0; idx < RENDER_COMMAND_BUFFER_NUM; ++idx)
+	{
+		if(idx == current->reserved)
+		{
+			continue;
+		}
+		
+		bool b_free = RenderMailBoxIsBufferFree(idx);
+		if(b_free)
+		{
+			return false;	
+		}
+	}
 	
 	
+	return true;
 }
 
 global_f void
@@ -165,3 +198,4 @@ RenderMailBoxFreeReserver(reserver_t *reserver)
 }
 
 
+ 

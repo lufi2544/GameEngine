@@ -92,20 +92,19 @@ global_f void
 RenderThreadLoop(void* data)
 {
 	// The renderer will read from the render_mailbox 
+	
+	reserver_t render_reserver;
 	while(g_engine->is_running)
-	{		
-		//PlatformEventWait(g_engine->frame_pipeline->render_event);
+	{
+		if(!RenderMailBoxGetReadyToProcessReserver(&render_reserver))
+		{
+			continue;
+		}
 		
-		// 
-		
-		;
-		MemoryBarrier();
-		
-		while(!RenderMailBoxAsignReserver(g_render_reserver));
-		
+		//PlatformEventWait(g_engine->frame_pipeline->render_event);		
+		MemoryBarrier();				
 		
 		frame_data_t *read = &g_engine->frame_pipeline->buffers[g_engine->frame_pipeline->render_index];
-		
 		printf("RenderFrame %i \n", read->frame_number);
 		
 		std::this_thread::sleep_for(std::chrono::milliseconds(40));
@@ -169,9 +168,9 @@ EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
 	dt = frame_end - frame_begin;
 	
 	printf("Engine Thread: Free %i \n", g_engine_reserver->reserved);
-	RenderMailBoxFreeReserver(g_engine_reserver);
-	SyncWithRenderThread(engine->frame_pipeline);	
 	
+	RenderMailBoxReturnReserver(g_engine_reserver);
+	SyncWithRenderThread(engine->frame_pipeline);		
 	
 	return 0;
 }
@@ -197,7 +196,6 @@ EngineRun(engine_t *engine)
 	
 	while(engine->is_running)
 	{
-		PlatformEventWait(engine->frame_pipeline->engine_event);
 		EngineRunLoop(engine, dt, target_fps, target_ms_frame);
 	}
 				
