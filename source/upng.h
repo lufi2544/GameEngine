@@ -104,7 +104,7 @@ upng_t*		upng_new_from_bytes	(arena_t *arena, const unsigned char* buffer, unsig
 upng_t*		upng_new_from_file	(arena_t *arena, const char* path);
 
 upng_error	upng_header			(upng_t* upng);
-upng_error	upng_decode			(engine_shared_data_t *shared_data, upng_t* upng);
+upng_error	upng_decode			(arena_t *arena, upng_t* upng);
 
 upng_error	upng_get_error		(const upng_t* upng);
 unsigned	upng_get_error_line	(const upng_t* upng);
@@ -1012,10 +1012,8 @@ upng_error upng_header(upng_t* upng)
 }
 
 /*read a PNG, the result will be in the same color type as the PNG (hence "generic")*/
-upng_error upng_decode(engine_shared_data_t *shared_data, upng_t* upng)
-{
-	S_SCRATCH(shared_data->memory);
-	
+upng_error upng_decode(arena_t *arena, upng_t* upng)
+{	
 	const unsigned char *chunk;
 	unsigned char* compressed;
 	unsigned char* inflated;
@@ -1091,7 +1089,7 @@ upng_error upng_decode(engine_shared_data_t *shared_data, upng_t* upng)
 	}
 	
 	/* allocate enough space for the (compressed and filtered) image data */
-	compressed = (u8*)push_size(temp_arena, compressed_size);
+	compressed = (u8*)push_size(arena, compressed_size);
 	if (compressed == NULL) {
 		SET_ERROR(upng, UPNG_ENOMEM);
 		return upng->error;
@@ -1120,7 +1118,7 @@ upng_error upng_decode(engine_shared_data_t *shared_data, upng_t* upng)
 	
 	/* allocate space to store inflated (but still filtered) data */
 	inflated_size = ((upng->width * (upng->height * upng_get_bpp(upng) + 7)) / 8) + upng->height;
-	inflated = (u8*)push_size(temp_arena, inflated_size);
+	inflated = (u8*)push_size(arena, inflated_size);
 	if (inflated == NULL) {
 		//free(compressed);
 		SET_ERROR(upng, UPNG_ENOMEM);
@@ -1137,7 +1135,7 @@ upng_error upng_decode(engine_shared_data_t *shared_data, upng_t* upng)
     
 	/* allocate final image buffer */
 	upng->size = (upng->height * upng->width * upng_get_bpp(upng) + 7) / 8;
-	upng->buffer = (u8*)push_size(&shared_data->memory->permanent, upng->size);
+	upng->buffer = (u8*)push_size(arena, upng->size);
 	if (upng->buffer == NULL) {
 		//free(inflated);
 		upng->size = 0;
@@ -1159,9 +1157,7 @@ upng_error upng_decode(engine_shared_data_t *shared_data, upng_t* upng)
 	/* we are done with our input buffer; free it if we own it */
 	upng_free_source(upng);
 	
-	return upng->error;
-	
-	SCRATCH_END();
+	return upng->error;	
 }
 
 static upng_t* 

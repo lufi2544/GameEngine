@@ -21,23 +21,22 @@ EngineInit(engine_t *engine)
 	g_render_mailbox->command_buffer[1] = (render_command_t*)push_size(&g_memory.permanent, sizeof(render_command_t) * MAX_RENDER_COMMANDS_PER_FRAME);
 	
 	g_render_mailbox->buffer_memory[0] = push_arena(&g_memory.permanent, MAX_RENDER_COMMANDS_PER_FRAME * RENDER_COMMAND_ARGS_MAX_SIZE);
+	g_render_mailbox->buffer_memory[1] = push_arena(&g_memory.permanent, MAX_RENDER_COMMANDS_PER_FRAME * RENDER_COMMAND_ARGS_MAX_SIZE);
 	
 	
 	g_engine_reserver = (reserver_t*)push_size(&g_memory.permanent, sizeof(reserver_t));
-	g_render_reserver = (reserver_t*)push_size(&g_memory.permanent, sizeof(reserver_t));
-	
-	
-	g_scene = (scene_t*)push_size(&g_memory.permanent, sizeof(frame_pipeline_t));
-	g_scene->scene_proxies = (scene_proxy_t*)push_size(&g_memory.permanent, sizeof(scene_proxy_t) * MAX_MESH_COUNT);
-	g_scene->scene_proxy_current = 0;
-	g_scene->scene_proxy_max_num = MAX_MESH_COUNT;
-	
+
 	
 	engine->main_window = CreateAWindow(200, 200, 1080, 1920);
 	engine->shared_data.memory = &g_memory;
     g_engine_camera  = (camera_t*)push_size(&g_memory.permanent, sizeof(camera_t));
 	
-	if(RendererInit())
+	
+	//// RENDERER
+	////////
+	
+	arena_t render_arena = push_arena(&g_memory.permanent, Megabyte(100));
+	if(RendererInit(render_arena))
 	{
 		MAYORANA_LOG("Renderer Init successfully");
 	}
@@ -91,15 +90,18 @@ volatile u32 render_frame = 0;
 global_f void 
 RenderThreadLoop(void* data)
 {
-	// The renderer will read from the render_mailbox 
 	
-	reserver_t render_reserver;
+	arena_t* renderer_memory = RendererGetMemory();
+	g_scene = (scene_t*)push_size(renderer_memory, sizeof(frame_pipeline_t));
+	g_scene->scene_proxies = (scene_proxy_t*)push_size(renderer_memory, sizeof(scene_proxy_t) * MAX_MESH_COUNT);
+	g_scene->current_scene_proxies = 0;
+	g_scene->max_scene_proxies = MAX_MESH_COUNT;
+	
+	
+	// The renderer will read from the render_mailbox 	
 	while(g_engine->is_running)
-	{
-		if(!RenderMailBoxGetReadyToProcessReserver(&render_reserver))
-		{
-			continue;
-		}
+	{				
+		RenderMailBoxProcessCommands();
 		
 		//PlatformEventWait(g_engine->frame_pipeline->render_event);		
 		MemoryBarrier();				
@@ -107,14 +109,12 @@ RenderThreadLoop(void* data)
 		frame_data_t *read = &g_engine->frame_pipeline->buffers[g_engine->frame_pipeline->render_index];
 		printf("RenderFrame %i \n", read->frame_number);
 		
-		std::this_thread::sleep_for(std::chrono::milliseconds(40));
+		EngineRender(g_engine);
 		
 		++render_frame;
 		
 		g_engine->frame_pipeline->render_index ^= 1;
 		
-		printf("Render Thread: Free %i \n", g_render_reserver->reserved);
-		RenderMailBoxFreeReserver(g_render_reserver);
 		
 		PlatformEventSignal(g_engine->frame_pipeline->engine_event);		
 	}
@@ -133,15 +133,14 @@ global_f void
 CreateRenderThread(mythread_t *render_thread, engine_t *engine)
 {
 	SCRATCH();
-
+	
 	string_t render_thread_name = STRING_V(temp_arena, "render_thread");	
 	start_thread(render_thread, &engine->shared_data.memory->threads, render_thread_name, RenderThreadLoop, 0);
 }
 
 global_f u32
 EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
-{				
-	
+{					
 	RenderMailBoxAsignReserver(g_engine_reserver);
 	
 	frame_data_t* write = &engine->frame_pipeline->buffers[engine->frame_pipeline->game_index];
@@ -154,7 +153,6 @@ EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
 	
 	EngineInput();
 	EngineUpdate(engine, dt);
-	EngineRender(engine);
 	
 	f64 frame_end = PlatformNow();
 	
@@ -167,7 +165,7 @@ EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
 	
 	dt = frame_end - frame_begin;
 	
-	printf("Engine Thread: Free %i \n", g_engine_reserver->reserved);
+	printf("Engine Thread: Free %i \n", g_engine_reserver->id);
 	
 	RenderMailBoxReturnReserver(g_engine_reserver);
 	SyncWithRenderThread(engine->frame_pipeline);		

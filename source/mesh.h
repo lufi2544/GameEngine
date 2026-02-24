@@ -33,6 +33,7 @@ struct texture_t
 
 struct mesh_t
 {
+	scene_proxy_t *scene_proxy;
 	vec3_t *verteces;
 	face_t *faces;
 	texture_uv_t *uv_coords;

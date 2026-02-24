@@ -53,5 +53,8 @@ STRING
 - Create a string_t table to check if we have already that string in memory.
 
 
+PLATFORM:
+- Crate a page size function to extract the page size.
+
 
 C:\Program Files (x86)\Windows Kits\10\Lib\10.0.22621.0\um\x86

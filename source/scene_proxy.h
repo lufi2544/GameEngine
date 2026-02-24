@@ -8,32 +8,14 @@ struct scene_proxy_t
 	u32 render_flags;
 };
 
-struct scene_t
-{
-	// TODO: We will track the free scene proxies in the scene somehow.
-	scene_proxy_t *scene_proxies;
-	u32 scene_proxy_current;
-	u32 scene_proxy_max_num;	
-};
-
-
-global_f scene_proxy_t*
-CreateSceneProxy()
-{
-	if(g_scene->scene_proxy_current + 1 >= g_scene->scene_proxy_max_num)
-	{
-		// TODO LOG 
-		return nullptr;
-	}
-	
-	scene_proxy_t *result;		
-	result = g_scene->scene_proxies + g_scene->scene_proxy_current++;	
-	return result;
-}
 
 global_f void 
-UpateProxyTransform(scene_proxy_t *proxy, transform_t *transform)
-{
+UpdateProxyTransform(scene_proxy_t *proxy, transform_t *transform)
+{	
+	if(!proxy)
+	{
+		return;
+	}
 	
 	struct update_proxy_transform_t
 	{
@@ -56,10 +38,41 @@ UpateProxyTransform(scene_proxy_t *proxy, transform_t *transform)
 		
 		render_command_t render_command;
 		render_command.command = command;
-		render_command.user_data = &args;
+		render_command.user_data = args;
 		
 				
 		RenderMailBoxCommitCommand(g_engine_reserver, &render_command);
 	}	
 	// TODO LOG
+}
+
+
+
+global_f void
+CreateSceneProxy_Enqueue(struct actor_t *actor)
+{
+	struct create_scene_proxy_t
+	{
+		actor_t* actor;		
+	};
+	
+	
+	command_t command = [](void* data)
+	{
+		create_scene_proxy_t* args = (create_scene_proxy_t*)data;
+	//	args->actor->scene_proxy = RendererCreateSceneProxy();
+	};
+	
+	if(create_scene_proxy_t* args = 
+	   (create_scene_proxy_t*)RenderMailBoxRequestArgsMemory(g_engine_reserver, sizeof(create_scene_proxy_t)))
+	{		
+		args->actor = actor;
+		
+		render_command_t render_command;
+		render_command.command = command;
+		render_command.user_data = args;
+		
+		RenderMailBoxCommitCommand(g_engine_reserver, &render_command);
+	}
+	
 }

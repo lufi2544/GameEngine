@@ -30,26 +30,33 @@ struct render_mailbox_t
 
 struct reserver_t
 {
-	s32 reserved;
+	s32 id;
 };
+
+global_f arena_t*
+RenderMailBoxRequestMemoryArena(reserver_t *reserver)
+{
+	arena_t *buffer_arena = &g_render_mailbox->buffer_memory[reserver->id];	
+	return buffer_arena;
+}
 
 global_f void*
 RenderMailBoxRequestArgsMemory(reserver_t *reserver, u32 size)
 {
-	if(reserver->reserved == -1)
+	if(reserver->id == -1)
 	{
 		printf("RenderMailBoxRequestArgsMemory Reserver does not own a buffer. \n");
 		return 0;
 	}
 	
-	arena_t *buffer_arena = &g_render_mailbox->buffer_memory[reserver->reserved];
+	arena_t *buffer_arena = &g_render_mailbox->buffer_memory[reserver->id];
 	return push_size(buffer_arena, size);	
 }
 
 global_f void
 RenderMailBoxCommitCommand(reserver_t *reserver, render_command_t *command)
 {
-	u32 free_idx = reserver->reserved;
+	u32 free_idx = reserver->id;
 	if(free_idx < 0)
 	{
 		printf("Reserver not assigned... \n");
@@ -102,7 +109,7 @@ RenderMailBoxAsignReserver(reserver_t *reserver)
 		return false;
 	}
 	
-	reserver->reserved = free_idx;
+	reserver->id = free_idx;
 	return true;
 }
 
@@ -111,17 +118,17 @@ RenderMailBoxAsignReserver(reserver_t *reserver)
 global_f void
 RenderMailBoxReturnReserver(reserver_t *reserver)
 {
-	if(reserver->reserved == -1)
+	if(reserver->id == -1)
 	{
 		return;
 	}
 	
 	render_mailbox_t *mailbox =  g_render_mailbox;
-	u32 idx_to_return = reserver->reserved;	
+	u32 idx_to_return = reserver->id;	
 	mailbox->free_buffer_flags[idx_to_return] = 1;
 	
 	PlatformMemoryBarrier();
-	reserver->reserved = -1;
+	reserver->id = -1;
 }
 
 global_f bool
@@ -145,7 +152,7 @@ RenderMailBoxGetReadyToProcessReserver(reserver_t *out_reserver)
 	}
 	
 	
-	out_reserver->reserved = ready_idx;
+	out_reserver->id = ready_idx;
 	
 	return ready_idx != -1;		
 }
@@ -162,7 +169,7 @@ RenderMailBoxCheckIfBuffersFull(reserver_t *current)
 	
 	for(u8 idx = 0; idx < RENDER_COMMAND_BUFFER_NUM; ++idx)
 	{
-		if(idx == current->reserved)
+		if(idx == current->id)
 		{
 			continue;
 		}
@@ -181,21 +188,44 @@ RenderMailBoxCheckIfBuffersFull(reserver_t *current)
 global_f void
 RenderMailBoxFreeReserver(reserver_t *reserver)
 {
-	if(reserver->reserved == -1)
+	if(reserver->id == -1)
 	{
 		return;
 	}
 	
 	render_mailbox_t *mailbox =  g_render_mailbox;
-	u32 idx_to_free = reserver->reserved;
+	u32 idx_to_free = reserver->id;
 	
-	mailbox->command_current[idx_to_free] = 0;	
+	mailbox->command_current[idx_to_free] = 0;
 	mailbox->free_buffer_flags[idx_to_free] = 1;
 	reset_arena(&mailbox->buffer_memory[idx_to_free]);
 	
 	PlatformMemoryBarrier();
-	reserver->reserved = -1;
+	reserver->id = -1;
 }
 
+global_f void
+RenderMailBoxProcessCommands()
+{
+	reserver_t reserver;
+	if(!RenderMailBoxGetReadyToProcessReserver(&reserver))
+	{
+		return;
+	}
+	
+	printf("Render Thread: Processing %i \n", reserver.id);
+		
+	u32 idx = reserver.id;
+	render_mailbox_t *mailbox = g_render_mailbox;		
+	render_command_t *command_buffer = mailbox->command_buffer[idx];
+	u32 *commands_num = &mailbox->command_current[idx];
+	
+	for(u32 command_idx = 0; command_idx < *commands_num; ++command_idx)
+	{
+		render_command_t command = command_buffer[command_idx];
+		command.command(command.user_data);
+	}
+	
 
- 
+	RenderMailBoxFreeReserver(&reserver);
+}

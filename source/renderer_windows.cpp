@@ -21,6 +21,7 @@ struct vertex_t
 struct gpu_mesh_t
 {
 	mesh_t *asset;
+	scene_proxy_t *scene_proxy;
 	ID3D11Buffer* vertex_buffer;
 	ID3D11Buffer* index_buffer;	
 	
@@ -42,6 +43,8 @@ struct gpu_vertex_t
 
 struct renderer_t
 {
+	arena_t memory;	
+	
 	ID3D11Device* device;
 	ID3D11DeviceContext *context;
 	IDXGISwapChain *swap_chain;
@@ -276,16 +279,17 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 }
 
 global_f bool
-RendererInit()
+RendererInit(arena_t render_arena)
 {
 	renderer_init_params params;
 	params.window_handle = g_engine->main_window.handle;
 	params.width = g_engine->main_window.width;
 	params.height = g_engine->main_window.height;
 	
+	g_renderer.memory = render_arena;
+		
 	return RenderInitWindows(&g_renderer, params);
 }
-
 
 internal_f u32
 hash_function_gpu_vertex(void *key, u32 key_size)
@@ -295,19 +299,44 @@ hash_function_gpu_vertex(void *key, u32 key_size)
 }
 
 
-/*
- * IMPORTANT:
- * @juanes.rayo:
- * In terms of memory allocation in the CPU when creating a mesh what we do is to allocate memory for the verteces with a MAX verteces that we allocate.
- * What I would like to do is to determine the memory that goes to the renderer, and if out of memory, then we just can't import the mesh or something.
-*/
-internal_f gpu_mesh_t
-RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, mesh_t *asset, const char *_texture_name)
+global_f arena_t* 
+RendererGetMemory()
 {
-	S_SCRATCH(engine_data->memory);	
+	return &g_renderer.memory;
+}
+
+
+global_f scene_proxy_t*
+RendererCreateSceneProxy()
+{
+	if(g_scene->current_scene_proxies + 1 >= g_scene->max_scene_proxies)
+	{
+		// TODO LOG
+		return 0;
+	}
+	
+	scene_proxy_t *scene_proxy = g_scene->scene_proxies + (g_scene->current_scene_proxies++);	
+	return scene_proxy;
+}
+
+internal_f gpu_mesh_t
+RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_name)
+{	
+	SCRATCH_ARENA(&r->memory)
 	
 	u32 asset_max_verteces = asset->face_num * 3;
 	gpu_mesh_t result = {};		
+	
+	
+	scene_proxy_t *scene_proxy = RendererCreateSceneProxy();
+	if(!scene_proxy)
+	{
+		printf(" Out of scene proxies... Take a look at the scene...\n");
+		return result;
+	}
+	
+	result.scene_proxy = scene_proxy;
+	
 	result.asset = asset;
 	hash_map_t vertex_to_index_map /*gpu_vertex - u32*/ = HASH_MAP(temp_arena, asset_max_verteces, gpu_vertex_t, u32, hash_function_gpu_vertex);
 	
@@ -468,10 +497,10 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
     
 	
 	// TODO 
-	upng_t *png= upng_new_from_file(&g_memory.permanent, _texture_name);
+	upng_t *png= upng_new_from_file(temp_arena, _texture_name);
 	if(png)
 	{
-		upng_decode(engine_data, png);
+		upng_decode(temp_arena, png);
 		u32 width = upng_get_width(png);
 		u32 height = upng_get_height(png);
 		u8* pixels = (u8*)upng_get_buffer(png);
@@ -500,16 +529,91 @@ RendererCreateMeshFromasset(engine_shared_data_t *engine_data, renderer_t *r, me
 	
 	g_mesh_num++;
 	
+
 	return result;	
 }
 
 global_f void
-RendererComputeImportedMesh(engine_shared_data_t *engine_data, mesh_t *_mesh, const char* _texture_name)
+RendererEnqueueCreateSceneProxyFromMesh(mesh_t *_mesh, void* gpu_mesh_ptr)
+{
+	gpu_mesh_t* gpu_mesh = (gpu_mesh_t*)gpu_mesh_ptr;
+	
+	struct set_scene_proxy_t
+	{
+		gpu_mesh_t* gpu_mesh;
+		mesh_t *mesh;
+	};
+	
+	
+	command_t command = [](void *data)
+	{
+		set_scene_proxy_t *args = (set_scene_proxy_t*)data;
+		
+		scene_proxy_t * scene_proxy = RendererCreateSceneProxy();
+		args->gpu_mesh->scene_proxy = scene_proxy;
+		args->mesh->scene_proxy = scene_proxy;
+	};
+	
+	
+	if(set_scene_proxy_t* args = 
+	   (set_scene_proxy_t*)RenderMailBoxRequestArgsMemory(g_engine_reserver, sizeof(set_scene_proxy_t)))
+	{
+		args->gpu_mesh = gpu_mesh;
+		args->mesh = _mesh;
+		render_command_t render_command;
+		render_command.command = command;
+		render_command.user_data = args;
+		
+		
+		RenderMailBoxCommitCommand(g_engine_reserver, &render_command);
+	}
+}
+
+global_f void
+RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name)
 {
 	renderer_t *renderer = &g_renderer;			
+				
+	struct compute_imported_mesh_t
+	{
+		mesh_t *mesh;
+		string_t texture_name;
+	};	
 	
-	gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(engine_data, renderer, _mesh, _texture_name);
-	LIST_ADD(&engine_data->memory->permanent, renderer->gpu_meshes, gpu_mesh, gpu_mesh_t);		
+	command_t command = [](void *data)
+	{
+		compute_imported_mesh_t *args = (compute_imported_mesh_t*)data;
+								
+		gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(&g_renderer, args->mesh, *args->texture_name);
+		list_node_t* added_node = LIST_ADD(&g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);
+		gpu_mesh_t* added_gpu_mesh = (gpu_mesh_t*)added_node->data;
+		
+		scene_proxy_t *scene_proxy = RendererCreateSceneProxy();
+		added_gpu_mesh->scene_proxy = scene_proxy;
+		args->mesh->scene_proxy = scene_proxy;	
+	};
+	
+	
+	if(compute_imported_mesh_t* args = 
+	   (compute_imported_mesh_t*)RenderMailBoxRequestArgsMemory(g_engine_reserver, sizeof(compute_imported_mesh_t)))
+	{
+		arena_t* buffer_arena = RenderMailBoxRequestMemoryArena(g_engine_reserver);
+		string_t texture_name = STRING_V(buffer_arena, _texture_name);
+		
+		args->mesh = _mesh;
+		args->texture_name = texture_name;
+		
+		render_command_t render_command;
+		render_command.command = command;
+		render_command.user_data = args;
+		
+		
+		RenderMailBoxCommitCommand(g_engine_reserver, &render_command);
+	}	
+		
+	
+	
+	
 }
 
 internal_f void
@@ -627,7 +731,7 @@ RenderMeshes(renderer_t *renderer)
 	gpu_mesh_t *mesh = 0;
 	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
 	{
-		transform_t transform = mesh->asset->transform;
+		transform_t transform = mesh->scene_proxy->transform;
 		u32 mesh_flags = mesh->asset->flags;
 		
 		// SOLID PASS

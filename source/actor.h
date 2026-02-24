@@ -8,6 +8,19 @@ struct actor_t
 {	
 	mesh_t* mesh;
 	
-	// Only written by the render thread
-	scene_proxy_t *scene_proxy;
+	transform_t transform;	
 };
+
+
+
+transform_t GetActorTransform(actor_t *actor)
+{
+	return actor->transform;
+}
+
+global_f void
+ActorSetTransform(actor_t *actor, transform_t *transform)
+{
+	actor->transform = *transform;	
+	UpdateProxyTransform(actor->mesh->scene_proxy, transform); 
+}
