@@ -5,7 +5,11 @@
 
 // Engine Thread is the one that writes and the Render Thread is the one that read the buffers from the game thread.
 
-/////////// Command used to process a render scene proxy.
+/*
+ * Command based architecture to execute on the render thread from the game thread. In this caset the only way we can 
+ * modify the render thead memory is by 
+*/
+
 typedef void (*command_t)(void*/*user data*/);
 
 #define RENDER_COMMAND_ARGS_MAX_SIZE 128
@@ -56,15 +60,15 @@ RenderMailBoxRequestArgsMemory(reserver_t *reserver, u32 size)
 global_f void
 RenderMailBoxCommitCommand(reserver_t *reserver, render_command_t *command)
 {
-	u32 free_idx = reserver->id;
-	if(free_idx < 0)
+	u32 reserver_id = reserver->id;
+	if(reserver_id < 0)
 	{
 		printf("Reserver not assigned... \n");
 		return;
 	}
 	
-	render_command_t *command_buffer = g_render_mailbox->command_buffer[free_idx];
-	u32* command_current = &g_render_mailbox->command_current[free_idx];
+	render_command_t *command_buffer = g_render_mailbox->command_buffer[reserver_id];
+	u32* command_current = &g_render_mailbox->command_current[reserver_id];
 	
 	if(*command_current + 1 >= g_render_mailbox->command_max)
 	{
@@ -78,10 +82,10 @@ internal_f bool
 RenderMailBoxIsBufferFree(u32 idx)
 {
 	render_mailbox_t* mailbox = g_render_mailbox;
-	bool b_has_data = mailbox->command_current[idx] == 0;
+	bool b_has_no_data = mailbox->command_current[idx] == 0;
 	bool b_is_free = mailbox->free_buffer_flags[idx] == true;
 	
-	bool b_ready =  b_has_data && b_is_free;
+	bool b_ready =  b_has_no_data && b_is_free;
 	
 	return b_ready;
 }
@@ -91,7 +95,9 @@ RenderMailBoxAsignReserver(reserver_t *reserver)
 {
 	s32 free_idx = -1;
 	
-	for(u8 idx = 0; idx < RENDER_COMMAND_BUFFER_NUM; ++idx)
+	for(u8 idx = 0; 
+		idx < RENDER_COMMAND_BUFFER_NUM;
+		++idx)
 	{
 		
 		bool b_free = RenderMailBoxIsBufferFree(idx);
@@ -143,6 +149,7 @@ RenderMailBoxGetReadyToProcessReserver(reserver_t *out_reserver)
 		bool b_has_data = mailbox->command_current[idx] > 0;
 		bool b_is_free = mailbox->free_buffer_flags[idx] == true;
 		
+		// TODO: What?
 		b_any_ready =  b_has_data && b_is_free;
 		if(b_any_ready)
 		{

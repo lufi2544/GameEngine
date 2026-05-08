@@ -572,13 +572,13 @@ RendererEnqueueCreateSceneProxyFromMesh(mesh_t *_mesh, void* gpu_mesh_ptr)
 global_f void
 RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name)
 {
-	renderer_t *renderer = &g_renderer;			
+	renderer_t *renderer = &g_renderer;
 				
 	struct compute_imported_mesh_t
 	{
 		mesh_t *mesh;
 		string_t texture_name;
-	};	
+	};
 	
 	command_t command = [](void *data)
 	{
@@ -588,9 +588,7 @@ RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name)
 		list_node_t* added_node = LIST_ADD(&g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);
 		gpu_mesh_t* added_gpu_mesh = (gpu_mesh_t*)added_node->data;
 		
-		scene_proxy_t *scene_proxy = RendererCreateSceneProxy();
-		added_gpu_mesh->scene_proxy = scene_proxy;
-		args->mesh->scene_proxy = scene_proxy;	
+		args->mesh->scene_proxy = gpu_mesh.scene_proxy;
 	};
 	
 	

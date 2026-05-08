@@ -2,8 +2,8 @@
 /// Engine project
 
 - Render thread:
-	- Create the render memory and allocate proxies, communicate back with the engine thread.
-	- create a command mailbox, which is a function buffer, that async, will be executed on the render thread.
+	- Take a look at the implementation of the mailbox and see if it can be improved.
+	- Create the one frame delay between render thread and game thread.
 
 - Create the Texture Manager.
 - Create handle for objects to not carry ptrs?

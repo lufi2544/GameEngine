@@ -12,9 +12,4 @@ struct scene_t
 	scene_proxy_t* scene_proxies;
 	u32 current_scene_proxies;
 	u32 max_scene_proxies;	
-};/* date = February 24th 2026 6:06 pm */
-
-#ifndef SCENE_H
-#define SCENE_H
-
-#endif //SCENE_H
+};

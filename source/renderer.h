@@ -40,10 +40,5 @@ RendererEnqueueCreateSceneProxyFromMesh(mesh_t *mesh, void* gpu_mesh);
 global_f scene_proxy_t*
 RendererCreateSceneProxy();
 
-
-global_f void
-RendererRegisterSceneProxyInScene(scene_proxy_t *proxy);
-
-
 global_f arena_t* 
 RendererGetMemory();

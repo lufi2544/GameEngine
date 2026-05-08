@@ -22,5 +22,6 @@ global_f void
 ActorSetTransform(actor_t *actor, transform_t *transform)
 {
 	actor->transform = *transform;	
+	
 	UpdateProxyTransform(actor->mesh->scene_proxy, transform); 
 }
