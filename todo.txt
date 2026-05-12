@@ -1,6 +1,53 @@
 //////////
 /// Engine project
 
+- The idea is to create a game, having fun along the process, and just live life, with the possibility of leaving some legacy of fun, joy and great moments for the players and earning money along the process.
+
+
+////////////////
+///// GAME /////
+////////////////
+
+-> Create battle world.
+
+////// Battle mode //////
+-> create a map with isometric view
+	-> imported actors - review pipeline.
+		-> I think we are not updating the actor render proxies if not jobs needed for rendering.
+			-> create the actor manager.
+			-> create a max actors per scene, in this case same as Meshes
+			-> Decouple the texture creation on the GPU, and create texture manager.
+			
+
+
+-> being able to navigate through it.
+-> add collisions to the map -> should be just a plain cube, no abrupt terrain, or complex terrain.
+-> crate a character with a collision.
+-> add a mock to the character sprite.
+-> being able to move the character around.
+
+FINAL: having the map in isometric view, and being able to move the mock character around.
+
+/////
+-> Make a consistent battle mode.
+	-> Create units and be able to click and move.
+		-> Be able to render a map
+		-> Characters with collisions to move around it.
+			-> Collisions, 2D sprite as quad, but we have a collision shape.
+
+
+
+		-> Grid.
+		-> AI movement.
+	-> Cards 
+		-> Maybe we can start with a mock for the cards and effects.
+		-> Cards with UI
+			-> UI framework.
+- Create the world with isometric view
+
+
+
+//////////////////////////
 - Render thread:
 	- Take a look at the implementation of the mailbox and see if it can be improved.
 	- Create the one frame delay between render thread and game thread.

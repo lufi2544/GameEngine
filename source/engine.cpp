@@ -46,8 +46,18 @@ EngineInit(engine_t *engine)
 	}		
 	
 	// TODO Maybe application layer and move this to the engine shared data layer
-	g_engine_camera->position = {0, 0, -1};
-	g_engine_camera->target = {0, 0, 0};
+	
+	vec3_t iso_dir = {1.0f, 1.0f, 1.0f};
+	vec3_t target = {0, 0, 0};
+	
+	f32 distance = 50.0f;
+	
+	vec3_t eye;
+	Vec3MultiplyF32(&iso_dir, distance),
+	Vec3Add(target, iso_dir, &eye);
+	
+	g_engine_camera->position = eye;
+	g_engine_camera->target = target;
 	g_engine_camera->up = {0, 1, 0};
 	g_engine_camera->fov = 60.0f * PI / 180.0f;
 	
@@ -107,7 +117,7 @@ RenderThreadLoop(void* data)
 		MemoryBarrier();				
 		
 		frame_data_t *read = &g_engine->frame_pipeline->buffers[g_engine->frame_pipeline->render_index];
-		printf("RenderFrame %i \n", read->frame_number);
+		//printf("RenderFrame %i \n", read->frame_number);
 		
 		EngineRender(g_engine);
 		
@@ -146,7 +156,7 @@ EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
 	frame_data_t* write = &engine->frame_pipeline->buffers[engine->frame_pipeline->game_index];
 	write->frame_number = ++engine_frame;
 	
-	printf("Engine frame %i \n", write->frame_number);
+	//printf("Engine frame %i \n", write->frame_number);
 	
 	f64 frame_begin = PlatformNow();		
 	PlatformUpdate();
@@ -165,7 +175,7 @@ EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
 	
 	dt = frame_end - frame_begin;
 	
-	printf("Engine Thread: Free %i \n", g_engine_reserver->id);
+//	printf("Engine Thread: Free %i \n", g_engine_reserver->id);
 	
 	RenderMailBoxReturnReserver(g_engine_reserver);
 	SyncWithRenderThread(engine->frame_pipeline);		

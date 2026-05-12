@@ -149,7 +149,6 @@ RenderMailBoxGetReadyToProcessReserver(reserver_t *out_reserver)
 		bool b_has_data = mailbox->command_current[idx] > 0;
 		bool b_is_free = mailbox->free_buffer_flags[idx] == true;
 		
-		// TODO: What?
 		b_any_ready =  b_has_data && b_is_free;
 		if(b_any_ready)
 		{

@@ -15,6 +15,34 @@ struct transform_t
 	vec3_t scale;	
 };
 
+forward_f vec3_t Vec3Identity();
+
+global_f transform_t
+TransformIdentity()
+{
+	transform_t result;
+	
+	result.position = Vec3Identity();
+	result.rotation = Vec3Identity();
+	result.scale.x = 1.0f;
+	result.scale.y = 1.0f;
+	result.scale.z = 1.0f;
+
+	
+	return result;
+}
+
+global_f vec3_t Vec3Identity()
+{
+	vec3_t result;
+		
+	result.x = 0.0f;
+	result.y = 0.0f;
+	result.z = 0.0f;
+	
+	return result;
+}
+
 internal_f vec3_t
 Vec3Sub(vec3_t a, vec3_t b)
 {
@@ -42,6 +70,23 @@ Vec3Normalize(vec3_t v)
 {
     float len = sqrtf(v.x*v.x + v.y*v.y + v.z*v.z);
     return { v.x/len, v.y/len, v.z/len };
+}
+
+
+internal_f void
+Vec3Add(vec3_t a, vec3_t b, vec3_t *out)
+{
+	out->x = a.x + b.x;
+	out->y = a.y + b.y;
+	out->z = a.z + b.z;
+}
+
+internal_f void
+Vec3MultiplyF32(vec3_t *a, f32 b)
+{
+	(*a).x *= b;
+	(*a).y *= b;
+	(*a).z *= b;
 }
 
 
@@ -160,6 +205,16 @@ Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
     out->d[12] = -Vec3Dot(xaxis, eye);
     out->d[13] = -Vec3Dot(yaxis, eye);
     out->d[14] = -Vec3Dot(zaxis, eye);
+}
+
+internal_f void
+Mat4OrthographicLH(mat4_t* m, float width, float height, float zn, float zf)
+{
+    m->d[0]  = 2.0f / width;
+    m->d[5]  = 2.0f / height;
+    m->d[10] = 1.0f / (zf - zn);
+    m->d[14] = -zn / (zf - zn);
+    m->d[15] = 1.0f;
 }
 
 internal_f void

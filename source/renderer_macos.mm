@@ -194,6 +194,7 @@ void RenderMeshes()
     gpu_mesh_t* mesh = 0;
     LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes) {
         transform_t transform = {};
+		
         transform.position = {0, 0, 1/1000};
         transform.scale = {1, 1, 1};
         static float angle = 0.0f;

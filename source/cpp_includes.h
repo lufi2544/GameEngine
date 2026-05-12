@@ -8,6 +8,8 @@
 #include "window.cpp"
 #include "engine.cpp"
 
+#include "actor.cpp"
+
 // APPLICATION LAYER
 #include "application.cpp"
 

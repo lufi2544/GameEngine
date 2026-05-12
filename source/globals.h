@@ -23,4 +23,4 @@ global reserver_t *g_render_reserver;
 
 
 #define MAX_MESH_COUNT 10
-#define MAX_FPS 30
+#define MAX_FPS 120

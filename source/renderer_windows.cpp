@@ -275,6 +275,9 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 		_renderer->device->CreateSamplerState(&samp, &_renderer->sampler);
 	}
 	
+	
+	_renderer->gpu_meshes.size = 0;
+	
 	return true;	
 }
 
@@ -534,43 +537,7 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_n
 }
 
 global_f void
-RendererEnqueueCreateSceneProxyFromMesh(mesh_t *_mesh, void* gpu_mesh_ptr)
-{
-	gpu_mesh_t* gpu_mesh = (gpu_mesh_t*)gpu_mesh_ptr;
-	
-	struct set_scene_proxy_t
-	{
-		gpu_mesh_t* gpu_mesh;
-		mesh_t *mesh;
-	};
-	
-	
-	command_t command = [](void *data)
-	{
-		set_scene_proxy_t *args = (set_scene_proxy_t*)data;
-		
-		scene_proxy_t * scene_proxy = RendererCreateSceneProxy();
-		args->gpu_mesh->scene_proxy = scene_proxy;
-		args->mesh->scene_proxy = scene_proxy;
-	};
-	
-	
-	if(set_scene_proxy_t* args = 
-	   (set_scene_proxy_t*)RenderMailBoxRequestArgsMemory(g_engine_reserver, sizeof(set_scene_proxy_t)))
-	{
-		args->gpu_mesh = gpu_mesh;
-		args->mesh = _mesh;
-		render_command_t render_command;
-		render_command.command = command;
-		render_command.user_data = args;
-		
-		
-		RenderMailBoxCommitCommand(g_engine_reserver, &render_command);
-	}
-}
-
-global_f void
-RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name)
+RendererComputeImportedMesh(mesh_t *_mesh, transform_t *transform, const char* _texture_name, scene_proxy_set_t set_callback)
 {
 	renderer_t *renderer = &g_renderer;
 				
@@ -578,17 +545,22 @@ RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name)
 	{
 		mesh_t *mesh;
 		string_t texture_name;
+		transform_t transform;
+		scene_proxy_set_t set_callback;
 	};
 	
 	command_t command = [](void *data)
 	{
 		compute_imported_mesh_t *args = (compute_imported_mesh_t*)data;
-								
-		gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(&g_renderer, args->mesh, *args->texture_name);
-		list_node_t* added_node = LIST_ADD(&g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);
-		gpu_mesh_t* added_gpu_mesh = (gpu_mesh_t*)added_node->data;
 		
+		gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(&g_renderer, args->mesh, *args->texture_name);
+		gpu_mesh.scene_proxy->transform = args->transform;
+		LIST_ADD(&g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);	
+			
 		args->mesh->scene_proxy = gpu_mesh.scene_proxy;
+		
+		
+		args->set_callback(args->mesh);
 	};
 	
 	
@@ -600,18 +572,15 @@ RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name)
 		
 		args->mesh = _mesh;
 		args->texture_name = texture_name;
+		args->set_callback = set_callback;
+		args->transform = *transform;
 		
 		render_command_t render_command;
 		render_command.command = command;
 		render_command.user_data = args;
 		
-		
 		RenderMailBoxCommitCommand(g_engine_reserver, &render_command);
-	}	
-		
-	
-	
-	
+	}				
 }
 
 internal_f void
@@ -718,16 +687,21 @@ RenderMeshes(renderer_t *renderer)
                  g_engine_camera->up);
 	
 	//TODO: get from the main window
-    float aspect = (f32)g_engine->main_window.width / (f32)g_engine->main_window.height;
-    Mat4PerspectiveLH(&proj,
-                      g_engine_camera->fov,
-                      aspect,
-                      g_engine_camera->near_z,
-                      g_engine_camera->far_z);
+    f32 aspect = (f32)g_engine->main_window.width / (f32)g_engine->main_window.height;
+	
+	
+	f32 cam_world_h = 20;
+	f32 cam_world_w = cam_world_h * aspect;
+	
+    Mat4OrthographicLH(&proj,
+					   cam_world_w,
+					   cam_world_h,
+					   g_engine_camera->near_z,
+					   g_engine_camera->far_z);
 	
 	// we will just render the list in this case.For now this is what I have, is not cache friendly neither optimal, but is fine for now.	
 	gpu_mesh_t *mesh = 0;
-	LIST_FOREACH(gpu_mesh_t, mesh, g_renderer.gpu_meshes)
+	LIST_FOREACH(gpu_mesh_t, mesh, renderer->gpu_meshes)
 	{
 		transform_t transform = mesh->scene_proxy->transform;
 		u32 mesh_flags = mesh->asset->flags;

@@ -18,6 +18,9 @@ enum enum_renderer_flags : u32
 };
 
 
+/** Callback signature so we know when the scene proxy on the Renderer memory has been created and the mesh is ready to be rendered. */
+typedef void (*scene_proxy_set_t)(void*);
+
 struct engine_shared_data_t;
 struct mesh_t;
 
@@ -27,15 +30,8 @@ RendererInit(arena_t render_memory);
 global_f void
 RendererUpdate(engine_shared_data_t *engine_data);
 
-
-// Must implement the 
 global_f void
-RendererComputeImportedMesh(mesh_t *_mesh, const char* _texture_name);
-
-
-// gpu_mesh implemented per platform.
-global_f void
-RendererEnqueueCreateSceneProxyFromMesh(mesh_t *mesh, void* gpu_mesh);
+RendererComputeImportedMesh(mesh_t *_mesh, transform_t *transform, const char* _texture_name, scene_proxy_set_t set_callback);
 
 global_f scene_proxy_t*
 RendererCreateSceneProxy();
