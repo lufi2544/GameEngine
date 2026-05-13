@@ -785,7 +785,7 @@ RenderMeshes(renderer_t *renderer)
 	
 	
 	// Camera Zoom
-	f32 cam_world_h = 20;
+	f32 cam_world_h = 30;
 	f32 cam_world_w = cam_world_h * aspect;
 	
     Mat4OrthographicLH(&proj,

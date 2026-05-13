@@ -184,19 +184,18 @@ Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
     vec3_t yaxis = Vec3Cross(zaxis, xaxis);
 	
 	
-	// setting the coordinate system in the matrix so we multiply the input point to the DotProduct of the coordinate system axis.
-	// x = dot(px, xaxis.x)
-    out->d[0]  = xaxis.x;
-    out->d[1]  = xaxis.y;
-    out->d[2]  = xaxis.z;
+	// Axes stored as rows so that mul(M, v) computes dot(xaxis, v), dot(yaxis, v), dot(zaxis, v)
+    out->d[0] = xaxis.x;
+	out->d[4] = xaxis.y;
+	out->d[8]  = xaxis.z;
 	
-    out->d[4]  = yaxis.x;
-    out->d[5]  = yaxis.y;
-    out->d[6]  = yaxis.z;
+    out->d[1] = yaxis.x;
+	out->d[5] = yaxis.y;
+	out->d[9]  = yaxis.z;
 	
-    out->d[8]  = zaxis.x;
-    out->d[9]  = zaxis.y;
-    out->d[10] = zaxis.z;
+    out->d[2] = zaxis.x; 
+	out->d[6] = zaxis.y;
+	out->d[10] = zaxis.z;
 	
 	
 	// Choose the translation so that the camera position maps to the origin in camera space:
