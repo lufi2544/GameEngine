@@ -13,7 +13,6 @@
 ////// Battle mode //////
 -> create a map with isometric view
 	-> imported actors - review pipeline.
-		-> I think we are not updating the actor render proxies if not jobs needed for rendering.
 			-> create the actor manager.
 			-> create a max actors per scene, in this case same as Meshes
 			-> Decouple the texture creation on the GPU, and create texture manager.

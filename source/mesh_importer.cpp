@@ -81,7 +81,7 @@ IsDigit(buffer_t _source, u64 _at)
 //In this case for the importer I have decided to add a node for each elemenet of the imported data.
 // e. g: vertex_coord(x, y, z) -> x, y and z are different elements.
 //
-// So when retrieving the num of each component like the verteces, we would have to divided by 2.
+// So when retrieving the num of each component like the verteces, we would have to divide by 2.
 ///////////////////
 internal_f importer_element_t*
 ImportMesh(arena_t *_temp_arena, const mesh_importer_t *_importer)

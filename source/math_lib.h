@@ -43,19 +43,19 @@ global_f vec3_t Vec3Identity()
 	return result;
 }
 
-internal_f vec3_t
+global_f vec3_t
 Vec3Sub(vec3_t a, vec3_t b)
 {
     return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
-internal_f float
+global_f float
 Vec3Dot(vec3_t a, vec3_t b)
 {
     return a.x*b.x + a.y*b.y + a.z*b.z;
 }
 
-internal_f vec3_t
+global_f vec3_t
 Vec3Cross(vec3_t a, vec3_t b)
 {
     return {
@@ -65,7 +65,7 @@ Vec3Cross(vec3_t a, vec3_t b)
     };
 }
 
-internal_f vec3_t
+global_f vec3_t
 Vec3Normalize(vec3_t v)
 {
     float len = sqrtf(v.x*v.x + v.y*v.y + v.z*v.z);
@@ -73,7 +73,7 @@ Vec3Normalize(vec3_t v)
 }
 
 
-internal_f void
+global_f void
 Vec3Add(vec3_t a, vec3_t b, vec3_t *out)
 {
 	out->x = a.x + b.x;
@@ -81,7 +81,7 @@ Vec3Add(vec3_t a, vec3_t b, vec3_t *out)
 	out->z = a.z + b.z;
 }
 
-internal_f void
+global_f void
 Vec3MultiplyF32(vec3_t *a, f32 b)
 {
 	(*a).x *= b;
@@ -108,7 +108,7 @@ Vec3MultiplyF32(vec3_t *a, f32 b)
 
 struct mat4_t;
 
-internal_f void
+global_f void
 Mat4Identity(mat4_t *m);
 
 struct mat4_t
@@ -132,7 +132,7 @@ mat4_t Mat4Identity()
     return m;
 }
 
-internal_f void
+global_f void
 Mat4Identity(mat4_t *m)
 {
 	bytes_set(m->d, 0, sizeof(float) * 16);
@@ -144,7 +144,7 @@ Mat4Identity(mat4_t *m)
 }
 
 
-internal_f void
+global_f void
 Mat4Mul(mat4_t* out, const mat4_t* a, const mat4_t* b)
 {	
     for (int col = 0; col < 4; ++col)
@@ -161,7 +161,7 @@ Mat4Mul(mat4_t* out, const mat4_t* a, const mat4_t* b)
 }
 
 
-internal_f void
+global_f void
 Mat4PerspectiveLH(mat4_t* m, float fovY, float aspect, float zn, float zf)
 {
     float yScale = 1.0f / tanf(fovY * 0.5f);
@@ -175,7 +175,7 @@ Mat4PerspectiveLH(mat4_t* m, float fovY, float aspect, float zn, float zf)
 }
 
 
-internal_f void
+global_f void
 Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
 {
 	// the camera coordinate system axis.
@@ -207,7 +207,7 @@ Mat4LookAtLH(mat4_t* out, vec3_t eye, vec3_t at, vec3_t up)
     out->d[14] = -Vec3Dot(zaxis, eye);
 }
 
-internal_f void
+global_f void
 Mat4OrthographicLH(mat4_t* m, float width, float height, float zn, float zf)
 {
     m->d[0]  = 2.0f / width;
@@ -217,7 +217,7 @@ Mat4OrthographicLH(mat4_t* m, float width, float height, float zn, float zf)
     m->d[15] = 1.0f;
 }
 
-internal_f void
+global_f void
 Mat4RotationX(mat4_t *m, float angle)
 {	
     float c = cosf(angle);
@@ -229,7 +229,7 @@ Mat4RotationX(mat4_t *m, float angle)
     m->d[10] = c;
 }
 
-internal_f void
+global_f void
 Mat4RotationY(mat4_t *m, float angle)
 {	
     float c = cosf(angle);
@@ -241,7 +241,7 @@ Mat4RotationY(mat4_t *m, float angle)
     m->d[10] = c;
 }
 
-internal_f void
+global_f void
 Mat4RotationZ(mat4_t* m, float angle)
 {	
     float c = cosf(angle);
@@ -254,7 +254,7 @@ Mat4RotationZ(mat4_t* m, float angle)
 }
 
 
-internal_f void
+global_f void
 Mat4Scale(mat4_t* out, vec3_t s)
 {
     Mat4Identity(out);
@@ -263,7 +263,7 @@ Mat4Scale(mat4_t* out, vec3_t s)
     out->d[10] = s.z;
 }
 
-internal_f void
+global_f void
 Mat4Translation(mat4_t* out, vec3_t p)
 {
     out->d[12] = p.x;
@@ -271,7 +271,7 @@ Mat4Translation(mat4_t* out, vec3_t p)
     out->d[14] = p.z;
 }
 
-internal_f void
+global_f void
 TransformToMatrix(mat4_t* out, transform_t t)
 {
     mat4_t T, S, Rx, Ry, Rz;
