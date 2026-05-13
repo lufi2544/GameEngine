@@ -53,6 +53,11 @@ struct renderer_t
 	
 	ID3D11VertexShader* vertex_shader;
 	ID3D11PixelShader* pixel_shader;
+
+	ID3D11VertexShader* grid_vs;
+	ID3D11PixelShader*  grid_ps;
+	ID3D11Buffer*       cb_grid;
+	ID3D11BlendState*   bs_alpha;
 	
 	ID3D11Texture2D *depth_buffer;
 	ID3D11DepthStencilView *depth_view;
@@ -86,6 +91,14 @@ struct constant_buffer_debug
 	f32 debugColor[4];
 	int useDebugColor;
 	f32 padding[3]; // 16-byte alingment TODO:WHY
+};
+
+struct constant_buffer_grid
+{
+	float inv_vp[16];
+	float vp[16];
+	float cam_pos[4];    // xyz + padding
+	float cam_target[4]; // xyz + padding
 };
 
 
@@ -277,8 +290,48 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	
 	
 	_renderer->gpu_meshes.size = 0;
-	
-	return true;	
+
+	// Grid shaders
+	{
+		ID3DBlob *vs_blob = 0, *ps_blob = 0, *err = 0;
+
+		HRESULT hr_vs = D3DCompileFromFile(L"grid_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, &err);
+		if (FAILED(hr_vs)) printf("grid_vs failed hr=0x%08X\n", hr_vs);
+		if (err) { printf("grid_vs error: %s\n", (char*)err->GetBufferPointer()); err->Release(); err = 0; }
+
+		HRESULT hr_ps = D3DCompileFromFile(L"grid_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, &err);
+		if (FAILED(hr_ps)) printf("grid_ps failed hr=0x%08X\n", hr_ps);
+		if (err) { printf("grid_ps error: %s\n", (char*)err->GetBufferPointer()); err->Release(); err = 0; }
+
+		if (vs_blob) { _renderer->device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &_renderer->grid_vs); vs_blob->Release(); }
+		if (ps_blob) { _renderer->device->CreatePixelShader( ps_blob->GetBufferPointer(), ps_blob->GetBufferSize(), 0, &_renderer->grid_ps); ps_blob->Release(); }
+	}
+
+	// Alpha blend state for transparent grid
+	{
+		D3D11_BLEND_DESC blend = {};
+		blend.RenderTarget[0].BlendEnable           = TRUE;
+		blend.RenderTarget[0].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+		blend.RenderTarget[0].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+		blend.RenderTarget[0].BlendOp               = D3D11_BLEND_OP_ADD;
+		blend.RenderTarget[0].SrcBlendAlpha         = D3D11_BLEND_ONE;
+		blend.RenderTarget[0].DestBlendAlpha        = D3D11_BLEND_ZERO;
+		blend.RenderTarget[0].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
+		blend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+		_renderer->device->CreateBlendState(&blend, &_renderer->bs_alpha);
+	}
+
+	// Grid constant buffer
+	{
+		D3D11_BUFFER_DESC desc = {};
+		desc.Usage          = D3D11_USAGE_DYNAMIC;
+		desc.ByteWidth      = sizeof(constant_buffer_grid);
+		desc.BindFlags      = D3D11_BIND_CONSTANT_BUFFER;
+		desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+		_renderer->device->CreateBuffer(&desc, 0, &_renderer->cb_grid);
+	}
+
+	return true;
 }
 
 global_f bool
@@ -646,7 +699,7 @@ RenderGPUMesh(renderer_t *renderer, gpu_mesh_t* mesh, transform_t *transform, ma
 internal_f void
 BeginFrame(renderer_t *_renderer)
 {	
-	float clear_color[4] = { 0.1f, 0.2f, 0.4f, 1.0f };
+	float clear_color[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	_renderer->context->ClearRenderTargetView(_renderer->target_view, clear_color);
 	
 	_renderer->context->ClearDepthStencilView(
@@ -677,6 +730,47 @@ EndFrame(renderer_t *_renderer)
 
 
 internal_f void
+RenderGrid(renderer_t *renderer, mat4_t *vp)
+{
+	if (!renderer->grid_vs || !renderer->grid_ps) 
+	{
+		return;
+	}
+
+	mat4_t inv_vp;
+	Mat4Inverse(&inv_vp, vp);
+
+	D3D11_MAPPED_SUBRESOURCE mapped = {};
+	renderer->context->Map(renderer->cb_grid, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	constant_buffer_grid *cb = (constant_buffer_grid*)mapped.pData;
+	bytes_copy(cb->inv_vp, inv_vp.d, sizeof(inv_vp.d));
+	bytes_copy(cb->vp,     vp->d,    sizeof(vp->d));
+	cb->cam_pos[0] = g_engine_camera->position.x;
+	cb->cam_pos[1] = g_engine_camera->position.y;
+	cb->cam_pos[2] = g_engine_camera->position.z;
+	cb->cam_pos[3] = 0.0f;
+	cb->cam_target[0] = g_engine_camera->target.x;
+	cb->cam_target[1] = g_engine_camera->target.y;
+	cb->cam_target[2] = g_engine_camera->target.z;
+	cb->cam_target[3] = 0.0f;
+	renderer->context->Unmap(renderer->cb_grid, 0);
+
+	float blend_factor[4] = {};
+	renderer->context->OMSetBlendState(renderer->bs_alpha, blend_factor, 0xFFFFFFFF);
+	renderer->context->RSSetState(renderer->rs_solid);
+	renderer->context->OMSetDepthStencilState(nullptr, 0);
+	renderer->context->IASetInputLayout(nullptr);
+	renderer->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	renderer->context->VSSetShader(renderer->grid_vs, 0, 0);
+	renderer->context->PSSetShader(renderer->grid_ps, 0, 0);
+	renderer->context->PSSetConstantBuffers(0, 1, &renderer->cb_grid);
+
+	renderer->context->Draw(4, 0);
+
+	renderer->context->OMSetBlendState(nullptr, blend_factor, 0xFFFFFFFF);
+}
+
+internal_f void
 RenderMeshes(renderer_t *renderer)
 {
 	mat4_t view, proj;
@@ -690,6 +784,7 @@ RenderMeshes(renderer_t *renderer)
     f32 aspect = (f32)g_engine->main_window.width / (f32)g_engine->main_window.height;
 	
 	
+	// Camera Zoom
 	f32 cam_world_h = 20;
 	f32 cam_world_w = cam_world_h * aspect;
 	
@@ -699,36 +794,35 @@ RenderMeshes(renderer_t *renderer)
 					   g_engine_camera->near_z,
 					   g_engine_camera->far_z);
 	
-	// we will just render the list in this case.For now this is what I have, is not cache friendly neither optimal, but is fine for now.	
+	mat4_t projTview;
+	Mat4Mul(&projTview, &proj, &view);
+
+	// we will just render the list in this case.For now this is what I have, is not cache friendly neither optimal, but is fine for now.
 	gpu_mesh_t *mesh = 0;
 	LIST_FOREACH(gpu_mesh_t, mesh, renderer->gpu_meshes)
 	{
 		transform_t transform = mesh->scene_proxy->transform;
 		u32 mesh_flags = mesh->asset->flags;
-		
+
 		// SOLID PASS
 		renderer->context->RSSetState(renderer->rs_solid);
 		renderer->context->OMSetDepthStencilState(nullptr, 0);
 		SetDebugColor(renderer, 0, 0, 0, 0, 0); // use vertex color
-		
-		mat4_t projTview;
-		Mat4Mul(&projTview, &proj, &view);
 		RenderGPUMesh(renderer, mesh, &transform, &projTview);
-		
+
 		// WIREFRAME PASS
-		
 		if(HasFlag(mesh_flags, RendererFlag_WireFrame))
 		{
 			renderer->context->RSSetState(renderer->rs_wireframe);
 			renderer->context->OMSetDepthStencilState(renderer->ds_wireframe_overlay, 0);
-			SetDebugColor(renderer, 0, 0, 0, 1, 1); // white 
-			RenderGPUMesh(renderer, mesh, &transform, &projTview);	
+			SetDebugColor(renderer, 0, 0, 0, 1, 1); // white
+			RenderGPUMesh(renderer, mesh, &transform, &projTview);
 		}
 
-		
 		renderer->context->OMSetDepthStencilState(nullptr, 0);
-		
 	}
+
+	RenderGrid(renderer, &projTview);
 }
 
 

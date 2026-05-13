@@ -21,7 +21,7 @@ transform_t GetActorTransform(actor_t *actor)
 
 // TODO: Think about decoupling the texture maybe?
 global_f actor_t
-ActorCreate(engine_shared_data_t *shared_data, arena_t *arena, transform_t *transform, const char* file_name, const char* texture_name);
+ActorCreate(engine_shared_data_t *shared_data, transform_t *transform, const char* file_name, const char* texture_name);
 
 global_f void
 ActorSetTransform(actor_t *actor, transform_t *transform);
