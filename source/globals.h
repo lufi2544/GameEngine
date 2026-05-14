@@ -22,5 +22,10 @@ global reserver_t *g_engine_reserver;
 global reserver_t *g_render_reserver;
 
 
-#define MAX_MESH_COUNT 10
 #define MAX_FPS 120
+
+// COMPONENTS
+#define MAX_COMPONENTS_PER_ACTOR 15
+#define MAX_COMPONENT_SIZE 256
+#define MAX_ACTORS 20
+#define MAX_SIZE_PER_COMPONENT 

@@ -484,14 +484,15 @@ ConvertToFace(mesh_t *_mesh, importer_element_t *first_face_element, buffer_t so
 
 // I would like to change this to struct of arrays, so we can have id DOD and better for cache locality
 // in this case, maybe allocting everything in the temp memory and then passing it to the permanent memory?..
-global_f mesh_t*
-CreateMeshFromFile(engine_shared_data_t *engine_data, vec3_t _position, vec3_t _rotation, const char *_file_name, const char* _texture_name, scene_proxy_set_t scene_proxy_set_calback)
+global_f mesh_t
+CreateMeshFromFile(actor_manager_t *_actor_manager, engine_shared_data_t *engine_data, arena_t *memory, vec3_t _position, vec3_t _rotation, const char *_file_name, const char* _texture_name, scene_proxy_set_t scene_proxy_set_calback)
 {
 	mesh_t result;
 	result.texture = 0;
 	result.face_num = 0;
 	result.vertex_num = 0;
 	result.uv_coords_num = 0;
+	result.flags = 0;
 	
 	transform_t initial_transform = TransformIdentity();
 	initial_transform.position = _position;
@@ -499,15 +500,15 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, vec3_t _position, vec3_t _
 	
 	if (_file_name == 0)
 	{
-		return 0;
+		return result;
 	}
 	
-	result.path = STRING_V(&engine_data->memory->permanent, _file_name);
+	result.path = STRING_V(memory, _file_name);
 	
 	SCRATCH_ARENA(&engine_data->memory->transient);
 	
 	buffer_t buffer = read_file(temp_arena, _file_name);
-    if (buffer.size == 0){ return 0; }
+    if (buffer.size == 0){ return result; }
 	if (buffer.size > 0)
 	{
 		printf("Importing mesh %s \n", _file_name);
@@ -551,9 +552,9 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, vec3_t _position, vec3_t _
 		printf("iterated face: %i \n", result.face_num);		
 		printf("iterated uv_corods: %i \n", result.uv_coords_num);		
 		
-		result.verteces = push_array(&engine_data->memory->permanent, result.vertex_num, vec3_t);
-		result.faces = push_array(&engine_data->memory->permanent, result.face_num, face_t);
-		result.uv_coords = push_array(&engine_data->memory->permanent, result.uv_coords_num, texture_uv_t);
+		result.verteces = push_array(memory, result.vertex_num, vec3_t);
+		result.faces = push_array(memory, result.face_num, face_t);
+		result.uv_coords = push_array(memory, result.uv_coords_num, texture_uv_t);
 		
 		//(juanes.rayo) NOTE: can we figure this out runtime? or is better to store it too? as we have already the verteces and the faces, we could figure this out runtime.
 		//result.triangles = PushArray(&engine_memory->permanent, count_face, triangle_t);
@@ -607,17 +608,13 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, vec3_t _position, vec3_t _
 		assert(current_vertex == result.vertex_num);	
 		assert(current_uv == result.uv_coords_num);
 	}
-    
-	engine_data->meshes[engine_data->mesh_num] = result;
-	mesh_t *imported = &engine_data->meshes[engine_data->mesh_num++];
-	
-	// TODO: _texture_name will be added later on ??
+    	
 	// Renderer "callback"
 	
-	RendererComputeImportedMesh(imported, &initial_transform, _texture_name, scene_proxy_set_calback);	
+
 	
-	printf("Mesh with : %i verteces. \n", imported->vertex_num);		
-	return imported;
+	printf("Mesh with : %i verteces. \n", result.vertex_num);		
+	return result;
 }
 
 
@@ -635,4 +632,3 @@ MeshAddTexture(engine_shared_data_t *shared_data, mesh_t *_mesh, string_t _textu
 	*/
 	return false;
 }
-

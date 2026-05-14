@@ -43,7 +43,7 @@ struct gpu_vertex_t
 
 struct renderer_t
 {
-	arena_t memory;	
+	arena_t *memory;	
 	
 	ID3D11Device* device;
 	ID3D11DeviceContext *context;
@@ -334,8 +334,14 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	return true;
 }
 
+global_f arena_t* 
+RendererGetMemory()
+{
+	return g_renderer.memory;
+}
+
 global_f bool
-RendererInit(arena_t render_arena)
+RendererInit(arena_t *render_arena)
 {
 	renderer_init_params params;
 	params.window_handle = g_engine->main_window.handle;
@@ -355,13 +361,6 @@ hash_function_gpu_vertex(void *key, u32 key_size)
 }
 
 
-global_f arena_t* 
-RendererGetMemory()
-{
-	return &g_renderer.memory;
-}
-
-
 global_f scene_proxy_t*
 RendererCreateSceneProxy()
 {
@@ -378,7 +377,7 @@ RendererCreateSceneProxy()
 internal_f gpu_mesh_t
 RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_name)
 {	
-	SCRATCH_ARENA(&r->memory)
+	SCRATCH_ARENA(r->memory)
 	
 	u32 asset_max_verteces = asset->face_num * 3;
 	gpu_mesh_t result = {};		
@@ -608,7 +607,7 @@ RendererComputeImportedMesh(mesh_t *_mesh, transform_t *transform, const char* _
 		
 		gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(&g_renderer, args->mesh, *args->texture_name);
 		gpu_mesh.scene_proxy->transform = args->transform;
-		LIST_ADD(&g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);	
+		LIST_ADD(g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);	
 			
 		args->mesh->scene_proxy = gpu_mesh.scene_proxy;
 		

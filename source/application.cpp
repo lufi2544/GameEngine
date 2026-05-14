@@ -47,9 +47,8 @@ ApplicationInit(engine_shared_data_t *engine_data)
 	t_.position = {0, 0, 10};
 	t_.rotation = { 0, 0, 0};
 	
-	*g_actor = ActorCreate(engine_data, &t, "data/lol.obj", "data/wall.png");
-	*g_actor_1 = ActorCreate(engine_data, &t_, "data/drone.obj", "data/drone.png");
-		
+	*g_actor = ActorCreate(&g_engine->actor_manager, engine_data, &t, "data/efa.obj", "data/efa.png", 10);
+	*g_actor_1 = ActorCreate(&g_engine->actor_manager, engine_data, &t_, "data/drone.obj", "data/drone.png", 10);
 	
 //	g_actor = ActorCreate();
 	

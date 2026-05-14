@@ -1,5 +1,8 @@
 /* date = January 26th 2026 4:25 pm */
 
+
+#include "application_components.h"
+
 struct engine_shared_data_t;
 
 global_f void

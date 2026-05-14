@@ -9,6 +9,7 @@
 #include "engine.cpp"
 
 #include "actor.cpp"
+#include "actor_manager.cpp"
 
 // APPLICATION LAYER
 #include "application.cpp"

@@ -14,8 +14,8 @@
 -> create a map with isometric view
 	-> imported actors - review pipeline.
 			-> create the actor manager.
-			-> create a max actors per scene, in this case same as Meshes
-			-> Decouple the texture creation on the GPU, and create texture manager.
+				-> create a max actors per scene, in this case same as Meshes
+				-> Decouple the texture creation on the GPU, and create texture manager.
 			
 
 

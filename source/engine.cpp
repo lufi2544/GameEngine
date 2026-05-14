@@ -1,10 +1,7 @@
 
-
-global_f void 
-EngineInit(engine_t *engine)
-{	
-	// TODO WRAP THIS
-	// RENDER THREAD STUFF
+global_f void
+EngineInitFramePipeline(engine_t *engine)
+{
 	engine->frame_pipeline = (frame_pipeline_t*)push_size(&g_memory.permanent, sizeof(frame_pipeline_t));
 	engine->frame_pipeline->game_index = 0;
 	engine->frame_pipeline->render_index = 0;	
@@ -25,17 +22,27 @@ EngineInit(engine_t *engine)
 	
 	
 	g_engine_reserver = (reserver_t*)push_size(&g_memory.permanent, sizeof(reserver_t));
-
+	
 	
 	engine->main_window = CreateAWindow(200, 200, 1080, 1920);
 	engine->shared_data.memory = &g_memory;
-    g_engine_camera  = (camera_t*)push_size(&g_memory.permanent, sizeof(camera_t));
+}
+
+global_f void 
+EngineInit(engine_t *engine)
+{	
+	EngineInitFramePipeline(engine);	
 	
+	EngineMemoryInit(&engine->shared_data.memory->permanent);
 	
+	arena_t* actors_memory = EngineRequestMemory(enum_memory_sandbox_actors);
+	ActorManagerInit(&engine->actor_manager, actors_memory);
+	
+		
 	//// RENDERER
 	////////
 	
-	arena_t render_arena = push_arena(&g_memory.permanent, Megabyte(100));
+	arena_t* render_arena = EngineRequestMemory(enum_memory_sandbox_renderer);
 	if(RendererInit(render_arena))
 	{
 		MAYORANA_LOG("Renderer Init successfully");
@@ -47,16 +54,17 @@ EngineInit(engine_t *engine)
 	
 	// TODO Maybe application layer and move this to the engine shared data layer
 	
+    g_engine_camera  = (camera_t*)push_size(&g_memory.permanent, sizeof(camera_t));
 	
-	// TODO Same for the actors.
 	// Mesh array init
-	engine->shared_data.meshes = (mesh_t*)push_size(&g_memory.permanent, MAX_MESH_COUNT * sizeof(mesh_t));
+	engine->shared_data.meshes = (mesh_t*)push_size(&g_memory.permanent, MAX_ACTORS * sizeof(mesh_t));
 	ApplicationInit(&engine->shared_data);
 }
 
 global_f void
 EngineUpdate(engine_t *engine, f32 dt)
 {
+	
 	ApplicationUpdate(&engine->shared_data, (f32)(dt / 1000.0f) );
 }
 
@@ -88,9 +96,9 @@ RenderThreadLoop(void* data)
 	
 	arena_t* renderer_memory = RendererGetMemory();
 	g_scene = (scene_t*)push_size(renderer_memory, sizeof(frame_pipeline_t));
-	g_scene->scene_proxies = (scene_proxy_t*)push_size(renderer_memory, sizeof(scene_proxy_t) * MAX_MESH_COUNT);
+	g_scene->scene_proxies = (scene_proxy_t*)push_size(renderer_memory, sizeof(scene_proxy_t) * MAX_ACTORS);
 	g_scene->current_scene_proxies = 0;
-	g_scene->max_scene_proxies = MAX_MESH_COUNT;
+	g_scene->max_scene_proxies = MAX_ACTORS;
 	
 	
 	// The renderer will read from the render_mailbox 	
@@ -129,6 +137,7 @@ CreateRenderThread(mythread_t *render_thread, engine_t *engine)
 {
 	SCRATCH();
 	
+	// TODO Review the thread memory
 	string_t render_thread_name = STRING_V(temp_arena, "render_thread");	
 	start_thread(render_thread, &engine->shared_data.memory->threads, render_thread_name, RenderThreadLoop, 0);
 }

@@ -25,7 +25,7 @@ struct engine_shared_data_t;
 struct mesh_t;
 
 global_f bool
-RendererInit(arena_t render_memory);
+RendererInit(arena_t *render_memory);
 
 global_f void
 RendererUpdate(engine_shared_data_t *engine_data);

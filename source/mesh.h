@@ -48,3 +48,11 @@ struct mesh_t
 	
 	u32 flags;	
 };
+
+
+struct mesh_component_t
+{
+	mesh_t mesh;
+};
+
+

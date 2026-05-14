@@ -9,6 +9,7 @@ struct engine_shared_data_t
 	// MESH
 	mesh_t *meshes;
 	u32 mesh_num;
+	
 };
 
 
