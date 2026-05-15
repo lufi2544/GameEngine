@@ -133,12 +133,10 @@ SyncWithRenderThread(frame_pipeline_t *pipeline)
 }
 
 global_f void
-CreateRenderThread(mythread_t *render_thread, engine_t *engine)
-{
-	SCRATCH();
-	
+CreateRenderThread(engine_shared_data_t *shared_data, mythread_t *render_thread, engine_t *engine)
+{	
 	// TODO Review the thread memory
-	string_t render_thread_name = STRING_V(temp_arena, "render_thread");	
+	string_t render_thread_name = STRING_V(&shared_data->memory->threads, "render_thread");	
 	start_thread(render_thread, &engine->shared_data.memory->threads, render_thread_name, RenderThreadLoop, 0);
 }
 
@@ -180,13 +178,11 @@ EngineRunLoop(engine_t *engine, f32 dt, f32 target_fps, f32 target_ms_frame)
 
 global_f u32 
 EngineRun(engine_t *engine)
-{
-	SCRATCH();
-	
+{	
 	EngineInit(engine);		
 		
 	mythread_t render_thread;
-	CreateRenderThread(&render_thread, engine);
+	CreateRenderThread(&engine->shared_data, &render_thread, engine);
 	
 	
 	f32 dt = 33.33f;

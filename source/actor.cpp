@@ -7,7 +7,7 @@ ActorCreate(actor_manager_t *manager, engine_shared_data_t *shared_data, transfo
 	arena_t *geometry_memory = EngineRequestMemory(enum_memory_sandbox_geometry);
 	
 	actor_t result;
-	mesh_t mesh = CreateMeshFromFile(manager, shared_data, geometry_memory, transform->position, transform->rotation, file_name, texture_name,  &ActorOnProxySet);
+	mesh_t mesh = CreateMeshFromFile(shared_data, geometry_memory, transform->position, transform->rotation, file_name, texture_name,  &ActorOnProxySet);
 	
 	
 	
