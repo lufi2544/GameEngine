@@ -5,15 +5,21 @@
 struct scene_proxy_t;
 struct actor_manager_t;
 
+// TODO review alingment
 struct actor_t
 {	
-	mesh_t* mesh;	
+	
+	mesh_t* mesh;	// TODO REMOVE
+	u32 id;
+	transform_t transform;	
 	
 	component_memory_t *components;
 	u32 components_num;
 	u32 components_max;
-		
-	transform_t transform;	
+	arena_t components_memory; // used to allocate any components related memory has 		
+	
+	// TODO As we remove components from the actor, we will need to add logic for making space for components, maybe deactivating/activating them? or just a set of components and then we just activate/deactivate as needed. 
+	
 };
 
 transform_t GetActorTransform(actor_t *actor)
@@ -32,5 +38,7 @@ ActorSetTransform(actor_t *actor, transform_t *transform);
 callback_f void
 ActorOnProxySet(void* actor);
 
-global_f void
-ActorAttachComponent(actor_t *actor, component_memory_t component_memory);
+internal_f void
+ActorAttachComponent(actor_t *actor, void* to_add_component, u32 size, u8 type, component_attached_callback_t callback);
+
+

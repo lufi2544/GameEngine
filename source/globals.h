@@ -26,6 +26,5 @@ global reserver_t *g_render_reserver;
 
 // COMPONENTS
 #define MAX_COMPONENTS_PER_ACTOR 15
-#define MAX_COMPONENT_SIZE 256
 #define MAX_ACTORS 20
-#define MAX_SIZE_PER_COMPONENT 
+#define MAX_COMPONENT_SIZE 128

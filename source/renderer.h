@@ -18,6 +18,9 @@ enum enum_renderer_flags : u32
 };
 
 
+struct mesh_component_t;
+struct mesh_importer_data_t;
+
 /** Callback signature so we know when the scene proxy on the Renderer memory has been created and the mesh is ready to be rendered. */
 typedef void (*scene_proxy_set_t)(void*);
 
@@ -31,7 +34,7 @@ global_f void
 RendererUpdate(engine_shared_data_t *engine_data);
 
 global_f void
-RendererComputeImportedMesh(mesh_t *_mesh, transform_t *transform, const char* _texture_name, scene_proxy_set_t set_callback);
+RendererComputeImportedMesh(mesh_importer_data_t *importer_data, mesh_component_t *_mesh_component, transform_t *transform, const char* _texture_name, scene_proxy_set_t set_callback);
 
 global_f scene_proxy_t*
 RendererCreateSceneProxy();

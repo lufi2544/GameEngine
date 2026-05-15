@@ -1,5 +1,7 @@
 /* date = January 22nd 2026 6:30 pm */
 
+#include "renderer.h"
+
 #include "engine_shared_data.h"
 
 #include "core.h"
@@ -16,6 +18,11 @@
 
 struct frame_pipeline_t;
 
+struct managers_t
+{
+	actor_manager_t actor_manager;	
+};
+
 struct engine_t
 {		
 	window_t main_window;
@@ -24,6 +31,6 @@ struct engine_t
 		
 	frame_pipeline_t *frame_pipeline;
 	
-	actor_manager_t actor_manager;	
+	managers_t managers;
 };
 ///////////////////////////

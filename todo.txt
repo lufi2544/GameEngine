@@ -8,9 +8,20 @@
 ///// GAME /////
 ////////////////
 
+-> decouple the mesh_t from the verteces and faces once imported.
+-> string tables
+
+
+
 -> Create battle world.
 
 ////// Battle mode //////
+
+DISCUSS:
+-> Component architecture: pools of component types, and then we assign them to the actors as they have it.
+
+
+
 -> create a map with isometric view
 	-> imported actors - review pipeline.
 			-> create the actor manager.

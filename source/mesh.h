@@ -1,6 +1,8 @@
 /* date = January 26th 2026 0:13 pm */
 
 
+#include "mesh_importer.h"
+
 struct texture_uv_t
 {
 	f32 u;
@@ -31,28 +33,18 @@ struct texture_t
 };
 
 
-struct mesh_t
+struct mesh_component_t
 {
 	scene_proxy_t *scene_proxy;
-	vec3_t *verteces;
-	face_t *faces;
-	texture_uv_t *uv_coords;
-	texture_t *texture;
 	
 	u32 vertex_num;
 	u32 face_num;
 	u32 uv_coords_num;
-	u32 texture_id;
-		
-	string_t path;
+	u32 flags;
 	
-	u32 flags;	
+	string_t file_name;
+	string_t texture_name;
 };
 
-
-struct mesh_component_t
-{
-	mesh_t mesh;
-};
-
-
+callback_f void
+mesh_component_t_OnAttached(actor_t *actor, void* data);

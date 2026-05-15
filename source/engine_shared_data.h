@@ -2,14 +2,18 @@
 
 struct mesh_t;
 
+
+// TODO Find a better place for this.
+struct mesh_import_data_t
+{
+	u32 pending_importing_meshes;
+	u32 last_frame_importing_meshes;
+};
+
 struct engine_shared_data_t
 {
-	memory_t *memory;
-	
-	// MESH
-	mesh_t *meshes;
-	u32 mesh_num;
-	
+	memory_t *memory;	
+	mesh_import_data_t mesh_import_data;
 };
 
 

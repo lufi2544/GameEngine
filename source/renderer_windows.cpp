@@ -20,7 +20,6 @@ struct vertex_t
 
 struct gpu_mesh_t
 {
-	mesh_t *asset;
 	scene_proxy_t *scene_proxy;
 	ID3D11Buffer* vertex_buffer;
 	ID3D11Buffer* index_buffer;	
@@ -375,11 +374,11 @@ RendererCreateSceneProxy()
 }
 
 internal_f gpu_mesh_t
-RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_name)
+RendererCreateMeshFromasset(renderer_t *r, mesh_importer_data_t *importer_data, const char *_texture_name)
 {	
 	SCRATCH_ARENA(r->memory)
 	
-	u32 asset_max_verteces = asset->face_num * 3;
+	u32 asset_max_verteces = importer_data->face_num * 3;
 	gpu_mesh_t result = {};		
 	
 	
@@ -392,7 +391,6 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_n
 	
 	result.scene_proxy = scene_proxy;
 	
-	result.asset = asset;
 	hash_map_t vertex_to_index_map /*gpu_vertex - u32*/ = HASH_MAP(temp_arena, asset_max_verteces, gpu_vertex_t, u32, hash_function_gpu_vertex);
 	
 	// Crating a buffer with the max verteces as the faces * 3, if none of the of the verteces are shared.
@@ -402,13 +400,13 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_n
 	u32 *index_buffer = push_array(temp_arena, asset_max_verteces, u32);
 	u32 indexes_num = 0;
 	
-	for(u32 face_idx = 0; face_idx < asset->face_num; ++face_idx)
+	for(u32 face_idx = 0; face_idx < importer_data->face_num; ++face_idx)
 	{
-		face_t *face = &asset->faces[face_idx];
+		face_t *face = &importer_data->faces[face_idx];
         
 		{
 			// VERTEX A
-            vec3_t vertex = asset->verteces[face->a];
+            vec3_t vertex = importer_data->verteces[face->a];
 			gpu_vertex_t gpu_vertex_a = { };
 			gpu_vertex_a.u = face->a_uv.u;
 			gpu_vertex_a.v = face->a_uv.v;
@@ -447,7 +445,7 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_n
 		
 		{
 			// VERTEX B
-            vec3_t vertex = asset->verteces[face->b];
+            vec3_t vertex = importer_data->verteces[face->b];
 			gpu_vertex_t gpu_vertex_b = { };
 			gpu_vertex_b.u = face->b_uv.u;
 			gpu_vertex_b.v = face->b_uv.v;
@@ -483,7 +481,7 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_n
 		
 		{
 			// VERTEX A
-            vec3_t vertex = asset->verteces[face->c];			
+            vec3_t vertex = importer_data->verteces[face->c];			
 			gpu_vertex_t gpu_vertex_c = { };
 			gpu_vertex_c.u = face->c_uv.u;
 			gpu_vertex_c.v = face->c_uv.v;
@@ -589,13 +587,14 @@ RendererCreateMeshFromasset(renderer_t *r, mesh_t *asset, const char *_texture_n
 }
 
 global_f void
-RendererComputeImportedMesh(mesh_t *_mesh, transform_t *transform, const char* _texture_name, scene_proxy_set_t set_callback)
+RendererComputeImportedMesh(mesh_importer_data_t *importer_data, mesh_component_t *_mesh_component, transform_t *transform, const char* _texture_name, scene_proxy_set_t set_callback)
 {
 	renderer_t *renderer = &g_renderer;
 				
 	struct compute_imported_mesh_t
 	{
-		mesh_t *mesh;
+		mesh_component_t *mesh_component;
+		mesh_importer_data_t *importer_data;
 		string_t texture_name;
 		transform_t transform;
 		scene_proxy_set_t set_callback;
@@ -605,27 +604,32 @@ RendererComputeImportedMesh(mesh_t *_mesh, transform_t *transform, const char* _
 	{
 		compute_imported_mesh_t *args = (compute_imported_mesh_t*)data;
 		
-		gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(&g_renderer, args->mesh, *args->texture_name);
+		gpu_mesh_t gpu_mesh = RendererCreateMeshFromasset(&g_renderer, args->importer_data, *args->texture_name);
 		gpu_mesh.scene_proxy->transform = args->transform;
 		LIST_ADD(g_renderer.memory, g_renderer.gpu_meshes, gpu_mesh, gpu_mesh_t);	
 			
-		args->mesh->scene_proxy = gpu_mesh.scene_proxy;
+		args->mesh_component->scene_proxy = gpu_mesh.scene_proxy;
+		g_engine->shared_data.mesh_import_data.pending_importing_meshes--;
 		
-		
-		args->set_callback(args->mesh);
+		args->set_callback(args->mesh_component);
 	};
 	
 	
 	if(compute_imported_mesh_t* args = 
 	   (compute_imported_mesh_t*)RenderMailBoxRequestArgsMemory(g_engine_reserver, sizeof(compute_imported_mesh_t)))
 	{
-		arena_t* buffer_arena = RenderMailBoxRequestMemoryArena(g_engine_reserver);
-		string_t texture_name = STRING_V(buffer_arena, _texture_name);
+		arena_t* buffer_arena = RenderMailBoxRequestMemoryArena(g_engine_reserver);				
 		
-		args->mesh = _mesh;
+		// TODO String Table
+		string_t texture_name = STRING_V(buffer_arena, _texture_name);		
+		
+		args->mesh_component = _mesh_component;
 		args->texture_name = texture_name;
 		args->set_callback = set_callback;
 		args->transform = *transform;
+		
+		args->importer_data = (mesh_importer_data_t*)push_size(buffer_arena, sizeof(mesh_importer_data_t));
+		bytes_copy(args->importer_data, importer_data, sizeof(mesh_importer_data_t));
 		
 		render_command_t render_command;
 		render_command.command = command;
@@ -801,7 +805,7 @@ RenderMeshes(renderer_t *renderer)
 	LIST_FOREACH(gpu_mesh_t, mesh, renderer->gpu_meshes)
 	{
 		transform_t transform = mesh->scene_proxy->transform;
-		u32 mesh_flags = mesh->asset->flags;
+		u32 mesh_flags = mesh->scene_proxy->render_flags;
 
 		// SOLID PASS
 		renderer->context->RSSetState(renderer->rs_solid);

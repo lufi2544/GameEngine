@@ -427,7 +427,7 @@ ConvertToTextureCoordinate(buffer_t buffer, importer_element_t *element, f32 *u,
 }
 
 internal_f face_t
-ConvertToFace(mesh_t *_mesh, importer_element_t *first_face_element, buffer_t source)
+ConvertToFace(mesh_importer_data_t *_mesh, importer_element_t *first_face_element, buffer_t source)
 {
 	// each face element has 3 components a, b and c, which the a is the only element that we care about for now
 	// v1/vt1/vn1
@@ -484,10 +484,10 @@ ConvertToFace(mesh_t *_mesh, importer_element_t *first_face_element, buffer_t so
 
 // I would like to change this to struct of arrays, so we can have id DOD and better for cache locality
 // in this case, maybe allocting everything in the temp memory and then passing it to the permanent memory?..
-global_f mesh_t
+global_f mesh_importer_data_t
 CreateMeshFromFile(engine_shared_data_t *engine_data, arena_t *memory, vec3_t _position, vec3_t _rotation, const char *_file_name, const char* _texture_name, scene_proxy_set_t scene_proxy_set_calback)
 {
-	mesh_t result;
+	mesh_importer_data_t result;
 	result.texture = 0;
 	result.face_num = 0;
 	result.vertex_num = 0;
@@ -503,6 +503,7 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, arena_t *memory, vec3_t _p
 		return result;
 	}
 	
+	// TODO Add String Tables
 	result.path = STRING_V(memory, _file_name);
 	
 	SCRATCH_ARENA(&engine_data->memory->transient);
@@ -613,13 +614,14 @@ CreateMeshFromFile(engine_shared_data_t *engine_data, arena_t *memory, vec3_t _p
 	
 
 	
-	printf("Mesh with : %i verteces. \n", result.vertex_num);		
+	printf("Mesh with : %i verteces. \n", result.vertex_num);
+	engine_data->mesh_import_data.pending_importing_meshes++;
 	return result;
 }
 
 
 global_f bool
-MeshAddTexture(engine_shared_data_t *shared_data, mesh_t *_mesh, string_t _texture_name)
+MeshAddTexture(engine_shared_data_t *shared_data, mesh_importer_data_t *_mesh, string_t _texture_name)
 {
 	// TODO add the texture manager
 	/*
@@ -632,3 +634,17 @@ MeshAddTexture(engine_shared_data_t *shared_data, mesh_t *_mesh, string_t _textu
 	*/
 	return false;
 }
+
+
+internal_f void
+MeshImporterTryFreeGeometryMemory(engine_shared_data_t *engine_data)
+{
+	if((engine_data->mesh_import_data.pending_importing_meshes <= 0) && (engine_data->mesh_import_data.last_frame_importing_meshes > 0))
+	{
+		arena_t *geometry_memory = EngineRequestMemory(enum_memory_sandbox_geometry);
+		reset_arena(geometry_memory);		
+	}
+	
+	engine_data->mesh_import_data.last_frame_importing_meshes = engine_data->mesh_import_data.pending_importing_meshes;
+}
+

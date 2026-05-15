@@ -10,9 +10,6 @@
 #include "window.h"
 #include "math_lib.h"
 
-
-#include "renderer.h"
-
 #include "engine.h"
 #include "input.h"
 

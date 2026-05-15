@@ -3,6 +3,10 @@
 
 
 
-
-
-
+enum enum_game_components
+{
+	ComponentType_None,
+	ComponentType_Mesh,
+	
+	ComponentType_Num
+};

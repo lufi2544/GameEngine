@@ -47,12 +47,24 @@ ApplicationInit(engine_shared_data_t *engine_data)
 	t_.position = {0, 0, 10};
 	t_.rotation = { 0, 0, 0};
 	
-	*g_actor = ActorCreate(&g_engine->actor_manager, engine_data, &t, "data/efa.obj", "data/efa.png", 10);
-	*g_actor_1 = ActorCreate(&g_engine->actor_manager, engine_data, &t_, "data/drone.obj", "data/drone.png", 10);
+	g_actor = ActorManagerCreateActor(&g_engine->managers.actor_manager, &t_, 5);
+	g_actor_1 = ActorManagerCreateActor(&g_engine->managers.actor_manager, &t, 5);
 	
-//	g_actor = ActorCreate();
 	
-	//g_mesh = mesh;
+	SCRATCH_ARENA(&engine_data->memory->transient);
+	
+	mesh_component_t mesh_component;
+	mesh_component.file_name = STRING_V(temp_arena, "data/drone.obj");
+	mesh_component.texture_name = STRING_V(temp_arena, "data/drone.png");
+		
+	ATTACH_COMPONENT(g_actor, mesh_component_t, mesh_component, ComponentType_Mesh);
+	
+	
+	mesh_component_t mesh_component_;
+	mesh_component_.file_name = STRING_V(temp_arena, "data/efa.obj");
+	mesh_component_.texture_name = STRING_V(temp_arena, "data/efa.png");
+	
+	ATTACH_COMPONENT(g_actor_1, mesh_component_t, mesh_component_, ComponentType_Mesh);		
 }
 
 global_f void

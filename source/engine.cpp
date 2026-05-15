@@ -1,4 +1,8 @@
 
+#include "mesh.cpp"
+
+
+
 global_f void
 EngineInitFramePipeline(engine_t *engine)
 {
@@ -30,14 +34,12 @@ EngineInitFramePipeline(engine_t *engine)
 
 global_f void 
 EngineInit(engine_t *engine)
-{	
+{		
+	engine->shared_data.mesh_import_data.pending_importing_meshes = 0;
+	engine->shared_data.mesh_import_data.last_frame_importing_meshes = 0;
+	
 	EngineInitFramePipeline(engine);	
-	
 	EngineMemoryInit(&engine->shared_data.memory->permanent);
-	
-	arena_t* actors_memory = EngineRequestMemory(enum_memory_sandbox_actors);
-	ActorManagerInit(&engine->actor_manager, actors_memory);
-	
 		
 	//// RENDERER
 	////////
@@ -57,7 +59,9 @@ EngineInit(engine_t *engine)
     g_engine_camera  = (camera_t*)push_size(&g_memory.permanent, sizeof(camera_t));
 	
 	// Mesh array init
-	engine->shared_data.meshes = (mesh_t*)push_size(&g_memory.permanent, MAX_ACTORS * sizeof(mesh_t));
+	arena_t* actors_memory = EngineRequestMemory(enum_memory_sandbox_actors);
+	ActorManagerInit(&engine->managers.actor_manager, actors_memory);
+			
 	ApplicationInit(&engine->shared_data);
 }
 
@@ -104,6 +108,7 @@ RenderThreadLoop(void* data)
 	// The renderer will read from the render_mailbox 	
 	while(g_engine->is_running)
 	{				
+		MeshImporterTryFreeGeometryMemory(&g_engine->shared_data);
 		RenderMailBoxProcessCommands();
 		
 		//PlatformEventWait(g_engine->frame_pipeline->render_event);		
