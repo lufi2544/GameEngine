@@ -29,23 +29,44 @@ EngineInitFramePipeline(engine_t *engine)
 	
 	
 	engine->main_window = CreateAWindow(200, 200, 1080, 1920);
-	engine->shared_data.memory = &g_memory;
+}
+
+
+internal_f void
+EngineInitSharedData(engine_t *engine)
+{
+	engine->shared_data.mesh_import_data.pending_importing_meshes = 0;
+	engine->shared_data.mesh_import_data.last_frame_importing_meshes = 0;
+	engine->shared_data.memory = &g_memory;	
+}
+
+
+// TODO Review the distinction of this initialization
+internal_f void 
+EngineInitCore(engine_t *engine)
+{
+	EngineInitSharedData(engine);
+	EngineInitFramePipeline(engine);
+	EngineMemoryInit(&engine->shared_data.memory->permanent);
+	
+	StringTableInit(&engine->shared_data.string_table);	
+	
+	
+	 StringTableAddString(&engine->shared_data.string_table, "This is the begining of the engine");
+	
+	string_t* found = StringTableRequestString(&engine->shared_data.string_table, "This is the begining of the engine");
+	
+	printf("Message:  %s\n", **(found));
 }
 
 global_f void 
 EngineInit(engine_t *engine)
 {		
-	engine->shared_data.mesh_import_data.pending_importing_meshes = 0;
-	engine->shared_data.mesh_import_data.last_frame_importing_meshes = 0;
-	
-	EngineInitFramePipeline(engine);	
-	EngineMemoryInit(&engine->shared_data.memory->permanent);
+	EngineInitCore(engine);		
 		
 	//// RENDERER
-	////////
-	
-	arena_t* render_arena = EngineRequestMemory(enum_memory_sandbox_renderer);
-	if(RendererInit(render_arena))
+	////////		
+	if(RendererInit())
 	{
 		MAYORANA_LOG("Renderer Init successfully");
 	}
@@ -59,9 +80,8 @@ EngineInit(engine_t *engine)
     g_engine_camera  = (camera_t*)push_size(&g_memory.permanent, sizeof(camera_t));
 	
 	// Mesh array init
-	arena_t* actors_memory = EngineRequestMemory(enum_memory_sandbox_actors);
-	ActorManagerInit(&engine->managers.actor_manager, actors_memory);
-			
+
+	ActorManagerInit(&engine->managers.actor_manager);			
 	ApplicationInit(&engine->shared_data);
 }
 

@@ -22,7 +22,7 @@ struct actor_manager_t
 
 
 global_f void
-ActorManagerInit(actor_manager_t *manager, arena_t *memory);
+ActorManagerInit(actor_manager_t *manager);
 
 
 global_f component_memory_t* 

@@ -14,6 +14,7 @@ struct engine_shared_data_t
 {
 	memory_t *memory;	
 	mesh_import_data_t mesh_import_data;
+	string_table_t string_table;
 };
 
 

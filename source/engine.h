@@ -1,10 +1,11 @@
 /* date = January 22nd 2026 6:30 pm */
 
+#include "core.h"
+
 #include "renderer.h"
 
 #include "engine_shared_data.h"
 
-#include "core.h"
 #include "camera.h"
 
 

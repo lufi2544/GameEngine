@@ -8,10 +8,8 @@
 ///// GAME /////
 ////////////////
 
--> decouple the mesh_t from the verteces and faces once imported.
 -> string tables
-
-
+-> log name when pushing arena.
 
 -> Create battle world.
 

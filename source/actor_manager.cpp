@@ -1,14 +1,15 @@
 
 global_f void
-ActorManagerInit(actor_manager_t *manager, arena_t *memory)
+ActorManagerInit(actor_manager_t *manager)
 {
 	actor_manager_t result;
 	
+	arena_t* actors_memory = EngineRequestMemory(enum_memory_sandbox_actors);	
 	manager->current_actors = 0;
 	manager->max_actors = MAX_ACTORS;
-	manager->actors = (actor_t*)push_size(memory, sizeof(actor_t) * MAX_ACTORS);
+	manager->actors = (actor_t*)push_size(actors_memory, sizeof(actor_t) * MAX_ACTORS);
 	
-	manager->free_actors = (u32*)push_size(memory, sizeof(u32) * MAX_ACTORS);
+	manager->free_actors = (u32*)push_size(actors_memory, sizeof(u32) * MAX_ACTORS);
 	manager->current_free_actors = manager->max_actors;
 	
 	for(u32 idx = 0; 
@@ -20,8 +21,8 @@ ActorManagerInit(actor_manager_t *manager, arena_t *memory)
 	
 	manager->current_components = 0;
 	manager->max_components = MAX_COMPONENTS_PER_ACTOR * MAX_ACTORS;
-	manager->components = (component_memory_t*)push_size(memory, sizeof(component_memory_t) * MAX_COMPONENTS_PER_ACTOR * MAX_ACTORS);		
-	manager->components_memory = push_arena(memory, MAX_ACTORS * MAX_COMPONENTS_PER_ACTOR * MAX_COMPONENT_SIZE);
+	manager->components = (component_memory_t*)push_size(actors_memory, sizeof(component_memory_t) * MAX_COMPONENTS_PER_ACTOR * MAX_ACTORS);		
+	manager->components_memory = push_arena(actors_memory, MAX_ACTORS * MAX_COMPONENTS_PER_ACTOR * MAX_COMPONENT_SIZE);
 }
 
 

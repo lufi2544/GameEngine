@@ -3,3 +3,4 @@
 #include "file_reader.h"
 #include "flags.h"
 #include "memory_manager.h"
+#include "string_table.h"

@@ -8,6 +8,7 @@
 enum enum_memory_sandbox
 {
 	enum_memory_sandbox_renderer,
+	enum_memory_sandbox_string_table,	
 	enum_memory_sandbox_geometry,
 	enum_memory_sandbox_actors,
 	enum_memory_sandbox_ai,
@@ -61,6 +62,10 @@ EngineMemoryInit(arena_t *memory)
 				g_sandboxes[idx].memory = push_arena(memory, Megabyte(100));
 			}break;
 			
+			case enum_memory_sandbox_string_table:
+			{
+				g_sandboxes[idx].memory = push_arena(memory, Megabyte(100));
+			}break;			
 			
 			default:break;
 		};

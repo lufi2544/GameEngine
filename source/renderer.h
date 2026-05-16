@@ -27,8 +27,15 @@ typedef void (*scene_proxy_set_t)(void*);
 struct engine_shared_data_t;
 struct mesh_t;
 
+internal_f bool
+RendererInitInternal(arena_t *render_arena);
+
 global_f bool
-RendererInit(arena_t *render_memory);
+RendererInit()
+{
+	arena_t* render_arena = EngineRequestMemory(enum_memory_sandbox_renderer);
+	return RendererInitInternal(render_arena);
+}
 
 global_f void
 RendererUpdate(engine_shared_data_t *engine_data);

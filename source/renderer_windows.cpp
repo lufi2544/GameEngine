@@ -340,7 +340,7 @@ RendererGetMemory()
 }
 
 global_f bool
-RendererInit(arena_t *render_arena)
+RendererInitInternal(arena_t *render_arena)
 {
 	renderer_init_params params;
 	params.window_handle = g_engine->main_window.handle;
