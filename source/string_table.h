@@ -5,8 +5,6 @@
 // String look up for persistent strings memory
 //////////////////////////////////////////////
 
-
-
 struct string_table_t
 {
 	arena_t *memory;

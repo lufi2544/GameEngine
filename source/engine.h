@@ -21,14 +21,14 @@ struct frame_pipeline_t;
 
 struct managers_t
 {
-	actor_manager_t actor_manager;	
+	actor_manager_t actor_manager;
 };
 
 struct engine_t
 {		
 	window_t main_window;
 	bool is_running;
-	engine_shared_data_t shared_data;		
+	engine_shared_data_t shared_data;
 		
 	frame_pipeline_t *frame_pipeline;
 	

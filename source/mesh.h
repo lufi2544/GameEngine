@@ -42,9 +42,28 @@ struct mesh_component_t
 	u32 uv_coords_num;
 	u32 flags;
 	
-	string_t file_name;
-	string_t texture_name;
+	string_t *file_name;
+	string_t *texture_name;
 };
+
+
+global_f mesh_component_t
+MeshComponent()
+{
+	mesh_component_t result;
+		
+	result. scene_proxy = 0;
+	
+	result.vertex_num = 0;
+	result.face_num = 0;
+	result.uv_coords_num = 0;
+	result.flags = 0;
+	
+	result.file_name = 0;
+	result.texture_name = 0;
+	
+	return result;
+}
 
 callback_f void
 mesh_component_t_OnAttached(actor_t *actor, void* data);

@@ -49,22 +49,19 @@ ApplicationInit(engine_shared_data_t *engine_data)
 	
 	g_actor = ActorManagerCreateActor(&g_engine->managers.actor_manager, &t_, 5);
 	g_actor_1 = ActorManagerCreateActor(&g_engine->managers.actor_manager, &t, 5);
-	
-	
+		
 	SCRATCH_ARENA(&engine_data->memory->transient);
 	
-	mesh_component_t mesh_component;
-	mesh_component.file_name = STRING_V(temp_arena, "data/drone.obj");
-	mesh_component.texture_name = STRING_V(temp_arena, "data/drone.png");
-		
-	ATTACH_COMPONENT(g_actor, mesh_component_t, mesh_component, ComponentType_Mesh);
+	mesh_component_t mesh_component_1 = MeshComponent();
+	mesh_component_1.file_name = StringTableRequestString(&engine_data->string_table, "data/drone.obj");
+	mesh_component_1.texture_name = StringTableRequestString(&engine_data->string_table, "data/drone.png");		
+	ATTACH_COMPONENT(g_actor, mesh_component_t, mesh_component_1, ComponentType_Mesh);
 	
 	
-	mesh_component_t mesh_component_;
-	mesh_component_.file_name = STRING_V(temp_arena, "data/efa.obj");
-	mesh_component_.texture_name = STRING_V(temp_arena, "data/efa.png");
-	
-	ATTACH_COMPONENT(g_actor_1, mesh_component_t, mesh_component_, ComponentType_Mesh);		
+	mesh_component_t mesh_component_2 = MeshComponent();
+	mesh_component_2.file_name = StringTableRequestString(&engine_data->string_table, "data/efa.obj");
+	mesh_component_2.texture_name = StringTableRequestString(&engine_data->string_table, "data/efa.png");
+	ATTACH_COMPONENT(g_actor_1, mesh_component_t, mesh_component_2, ComponentType_Mesh);
 }
 
 global_f void

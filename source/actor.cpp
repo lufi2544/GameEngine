@@ -44,6 +44,12 @@ ActorOnProxySet(void* mesh)
 internal_f void
 ActorAttachComponent(actor_t *actor, void* to_add_component, u32 size, u8 type, component_attached_callback_t callback)
 {
+	if(size > MAX_COMPONENT_SIZE)
+	{
+		printf("Component bigger than expected: Size %i, Expected %i \n", size, MAX_COMPONENT_SIZE);
+		assert(false);
+	}
+	
 	if(actor->components_num + 1 >= actor->components_max)
 	{
 		printf("Actor with id %i trying to attach component %i --> not enough space for more components.\n", actor->id, type);
