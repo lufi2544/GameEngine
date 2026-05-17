@@ -35,7 +35,9 @@ StringTableAddString(string_table_t *table, char* string)
 	
 	HASH_MAP_ADD_GET(table->string_map, u32, string_t, string_hash, to_add, result);
 	
+	printf(" ========= \n");
 	printf("String Table: Added string to the table. String --> \"%s\" \n", string);
+	printf(" ========= \n");
 	
 	return result;
 }
@@ -51,8 +53,9 @@ StringTableRequestString(string_table_t* table, char* string)
 	// Create a new entry if the string not found
 	if(result == 0)
 	{
+		printf(" ========= \n");
 		printf("String Table: string \"%s\" not found on the table. Adding it...\n", string);
-		return StringTableAddString(table, string);		
+		return StringTableAddString(table, string);
 	}
 	
 	return result;

@@ -51,7 +51,7 @@ global_f mesh_component_t
 MeshComponent()
 {
 	mesh_component_t result;
-		
+	
 	result. scene_proxy = 0;
 	
 	result.vertex_num = 0;

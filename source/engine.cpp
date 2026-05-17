@@ -49,14 +49,7 @@ EngineInitCore(engine_t *engine)
 	EngineInitFramePipeline(engine);
 	EngineMemoryInit(&engine->shared_data.memory->permanent);
 	
-	StringTableInit(&engine->shared_data.string_table);	
-	
-	
-	 StringTableAddString(&engine->shared_data.string_table, "This is the begining of the engine");
-	
-	string_t* found = StringTableRequestString(&engine->shared_data.string_table, "This is the begining of the engine");
-	
-	printf("Message:  %s\n", **(found));
+	StringTableInit(&engine->shared_data.string_table);			
 }
 
 global_f void 
@@ -81,7 +74,7 @@ EngineInit(engine_t *engine)
 	
 	// Mesh array init
 
-	ActorManagerInit(&engine->managers.actor_manager);			
+	ActorManagerInit(&engine->managers.actor_manager);
 	ApplicationInit(&engine->shared_data);
 }
 
