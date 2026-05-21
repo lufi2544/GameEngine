@@ -245,8 +245,8 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	ID3DBlob *vs_blob = 0;
 	ID3DBlob *ps_blob = 0;
 	
-	D3DCompileFromFile(L"triangle_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, 0);
-	D3DCompileFromFile(L"triangle_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, 0);
+	D3DCompileFromFile(L"../data/triangle_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, 0);
+	D3DCompileFromFile(L"../data/triangle_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, 0);
     
 	
 	_renderer->device->CreateVertexShader(vs_blob->GetBufferPointer(), vs_blob->GetBufferSize(), 0, &_renderer->vertex_shader);	
@@ -294,11 +294,11 @@ bool RenderInitWindows(renderer_t *_renderer, renderer_init_params _params)
 	{
 		ID3DBlob *vs_blob = 0, *ps_blob = 0, *err = 0;
 
-		HRESULT hr_vs = D3DCompileFromFile(L"grid_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, &err);
+		HRESULT hr_vs = D3DCompileFromFile(L"../data/grid_vs.hlsl", 0, 0, "main", "vs_5_0", 0, 0, &vs_blob, &err);
 		if (FAILED(hr_vs)) printf("grid_vs failed hr=0x%08X\n", hr_vs);
 		if (err) { printf("grid_vs error: %s\n", (char*)err->GetBufferPointer()); err->Release(); err = 0; }
 
-		HRESULT hr_ps = D3DCompileFromFile(L"grid_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, &err);
+		HRESULT hr_ps = D3DCompileFromFile(L"../data/grid_ps.hlsl", 0, 0, "main", "ps_5_0", 0, 0, &ps_blob, &err);
 		if (FAILED(hr_ps)) printf("grid_ps failed hr=0x%08X\n", hr_ps);
 		if (err) { printf("grid_ps error: %s\n", (char*)err->GetBufferPointer()); err->Release(); err = 0; }
 
