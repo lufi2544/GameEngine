@@ -11,8 +11,11 @@ struct window_t
     
 #ifdef _APPLE
     void* handle;
-    
 #endif // _APPLE
+
+#ifdef _LINUX
+    void* handle;
+#endif // _LINUX
 	u32 x;
 	u32 y;
 	u32 width;

@@ -104,5 +104,44 @@ window_t CreateAWindow(u32 x, u32 y, u32 h, u32 w)
 
 #ifdef _APPLE
 #include "window_macos.mm"
-
 #endif // _APPLE
+
+#ifdef _LINUX
+#include <X11/Xlib.h>
+
+window_t CreateAWindow(u32 x, u32 y, u32 h, u32 w)
+{
+    window_t result = {};
+    result.x = x;
+    result.y = y;
+    result.width  = w;
+    result.height = h;
+
+    g_x11_display = XOpenDisplay(NULL);
+    if (!g_x11_display)
+    {
+        MAYORANA_LOG("Failed to open X11 display");
+        return result;
+    }
+
+    int screen = DefaultScreen(g_x11_display);
+    g_x11_window = XCreateSimpleWindow(
+        g_x11_display,
+        RootWindow(g_x11_display, screen),
+        x, y, w, h,
+        1,
+        BlackPixel(g_x11_display, screen),
+        WhitePixel(g_x11_display, screen)
+    );
+
+    Atom wm_delete = XInternAtom(g_x11_display, "WM_DELETE_WINDOW", False);
+    XSetWMProtocols(g_x11_display, g_x11_window, &wm_delete, 1);
+
+    XStoreName(g_x11_display, g_x11_window, "engine");
+    XMapWindow(g_x11_display, g_x11_window);
+    XFlush(g_x11_display);
+
+    result.handle = (void*)(uintptr_t)g_x11_window;
+    return result;
+}
+#endif // _LINUX
