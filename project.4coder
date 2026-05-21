@@ -25,6 +25,9 @@ load_paths = {
 	{
 		{ {"."}, .recursive = true, .relative = true }, .os = "mac"
 	},
+	{
+		{ {"."}, .recursive = true, .relative = true }, .os = "linux"
+	},
 };
 
 command_list = {
@@ -71,6 +74,30 @@ command_list = {
 			{ "bash run.sh", .os = "mac" },
 		},
 	},
+
+	{
+		.name = "build",
+		.out = "*compilation*",
+		.footer_panel = true,
+		.save_dirty_files = true,
+		.cursor_at_end = false,
+		.cmd = {
+			{ "bash build_linux.sh", .os = "linux" },
+		},
+	},
+
+	{
+		.name = "run",
+		.out = "*compilation*",
+		.footer_panel = true,
+		.save_dirty_files = true,
+		.cursor_at_end = false,
+		.cmd = {
+			{ "bash run_linux.sh", .os = "linux" },
+		},
+	},
+
+
 
 	{
 		.name = "clean",

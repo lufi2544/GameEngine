@@ -29,7 +29,7 @@ read_file(arena_t *_arena, const char *_file_name)
 #endif // _WINDOWS
 	
 	
-#ifdef _APPLE
+#if defined(_APPLE) || defined(_LINUX)
 	struct stat _stat;
 	s32 stat_result = stat(_file_name, &_stat);
 #endif // _APPLE

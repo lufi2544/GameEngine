@@ -8,27 +8,27 @@ THIS_DIR="$(cd "$(dirname "$0")" && pwd)"
 SRC_DIR="$THIS_DIR/source"
 TESTS_DIR="$THIS_DIR/tests"
 BIN_DIR="$THIS_DIR/bin"
-BUILD_DIR="$THIS_DIR/build"
 
-MAIN_FILE="$SRC_DIR/macos_main.mm"   # rename later if you want
+MAIN_FILE="$SRC_DIR/linux_main.cpp"
 MAYORANA_DIR="$SRC_DIR/MayoranaFramework/source"
 MAYORANA_REF="$SRC_DIR/mayorana-reflection/source"
-FRAMEWORKS=(
-	-framework Cocoa
-	-framework Metal
-	-framework QuartzCore
-)
 
 BINARY_NAME="engine"
 FLAGS="MAYORANA"
 
-CXX=clang++
-CXXFLAGS="-std=c++17"
+CXX=g++
+CXXFLAGS="-std=c++17 -g"
 INCLUDES=(
     "-I$SRC_DIR"
     "-I$TESTS_DIR"
     "-I$MAYORANA_DIR"
-    "-I$MAYORANA_REF/reflection_includes.h"
+    "-I$MAYORANA_REF"
+)
+LIBS=(
+    -lvulkan
+    -lX11
+    -ldl
+    -lpthread
 )
 
 # -----------------------------
@@ -41,10 +41,10 @@ cd "$BIN_DIR"
 # Compile
 # -----------------------------
 $CXX \
-    "${CXXFLAGS}" \
+    $CXXFLAGS \
     "${INCLUDES[@]}" \
     -D$FLAGS \
-	"${FRAMEWORKS[@]}"\
+    "${LIBS[@]}" \
     "$MAIN_FILE" \
     -o "$BINARY_NAME"
 

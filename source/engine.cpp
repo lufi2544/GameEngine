@@ -125,7 +125,7 @@ RenderThreadLoop(void* data)
 		RenderMailBoxProcessCommands();
 		
 		//PlatformEventWait(g_engine->frame_pipeline->render_event);		
-		MemoryBarrier();				
+		PlatformMemoryBarrier();				
 		
 		frame_data_t *read = &g_engine->frame_pipeline->buffers[g_engine->frame_pipeline->render_index];
 		//printf("RenderFrame %i \n", read->frame_number);
@@ -144,7 +144,7 @@ RenderThreadLoop(void* data)
 global_f void
 SyncWithRenderThread(frame_pipeline_t *pipeline)
 {	
-	MemoryBarrier();	
+	PlatformMemoryBarrier();	
 	pipeline->game_index ^= 1;
 	
 	PlatformEventSignal(pipeline->render_event);

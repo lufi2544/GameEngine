@@ -11,7 +11,7 @@ StringTableInit(string_table_t *table)
 
 
 internal_f u32
-StringTableKey(char* string, u32 size)
+StringTableKey(const char* string, u32 size)
 {
 	u8* content = (u8*)string;	
 	u32 key = 0;
@@ -26,7 +26,7 @@ StringTableKey(char* string, u32 size)
 }
 
 global_f string_t* 
-StringTableAddString(string_table_t *table, char* string)
+StringTableAddString(string_table_t *table, const char* string)
 {	
 	string_t* result;
 	string_t to_add = STRING_V(table->memory, string);
@@ -43,7 +43,7 @@ StringTableAddString(string_table_t *table, char* string)
 }
 
 global_f string_t*
-StringTableRequestString(string_table_t* table, char* string)
+StringTableRequestString(string_table_t* table, const char* string)
 {	
 	string_t* result = 0;
 	u32 size = cstr_size(string);
