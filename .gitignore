@@ -1,6 +1,4 @@
 .DS_Store
 bin/*
-!bin/data/
-!bin/data/**
 build/
 

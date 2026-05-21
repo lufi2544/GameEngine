@@ -53,14 +53,14 @@ ApplicationInit(engine_shared_data_t *engine_data)
 	SCRATCH_ARENA(&engine_data->memory->transient);
 	
 	mesh_component_t mesh_component_1 = MeshComponent();
-	mesh_component_1.file_name = StringTableRequestString(&engine_data->string_table, "data/drone.obj");
-	mesh_component_1.texture_name = StringTableRequestString(&engine_data->string_table, "data/drone.png");		
+	mesh_component_1.file_name = StringTableRequestString(&engine_data->string_table, "../data/drone.obj");
+	mesh_component_1.texture_name = StringTableRequestString(&engine_data->string_table, "../data/drone.png");		
 	ATTACH_COMPONENT(g_actor, mesh_component_t, mesh_component_1, ComponentType_Mesh);
 	
 	
 	mesh_component_t mesh_component_2 = MeshComponent();
-	mesh_component_2.file_name = StringTableRequestString(&engine_data->string_table, "data/efa.obj");
-	mesh_component_2.texture_name = StringTableRequestString(&engine_data->string_table, "data/efa.png");
+	mesh_component_2.file_name = StringTableRequestString(&engine_data->string_table, "../data/efa.obj");
+	mesh_component_2.texture_name = StringTableRequestString(&engine_data->string_table, "../data/efa.png");
 	ATTACH_COMPONENT(g_actor_1, mesh_component_t, mesh_component_2, ComponentType_Mesh);
 }
 
